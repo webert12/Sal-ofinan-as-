@@ -13,14 +13,47 @@ USUARIOS_FILE = "usuarios.json"
 ADMIN_MESTRE_USER = "admin"
 ADMIN_MESTRE_PASS = "master2026"
 
-# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (SALÕES) ---
+# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (COM TRATAMENTO DE VALIDADE) ---
 def carregar_usuarios():
+    hoje_str = datetime.now().strftime("%Y-%m-%d")
+    vencimento_padrao = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    
     if os.path.exists(USUARIOS_FILE):
         with open(USUARIOS_FILE, "r") as f:
-            return json.load(f)
+            dados = json.load(f)
+            
+        # Migração automática caso o arquivo antigo esteja no formato antigo (string simples)
+        usuarios_atualizados = {}
+        modificado = False
+        for k, v in dados.items():
+            if isinstance(v, str):
+                usuarios_atualizados[k] = {
+                    "senha": v,
+                    "tipo": "Cliente",
+                    "vencimento": vencimento_padrao,
+                    "status": "Ativo"
+                }
+                modificado = True
+            else:
+                usuarios_atualizados[k] = v
+        if modificado:
+            salvar_usuarios(usuarios_atualizados)
+        return usuarios_atualizados
+
+    # Dados iniciais caso não exista o arquivo
     usuarios_padrao = {
-        "salao_central": "admin123",
-        "barbearia_vanguard": "corte2026"
+        "salao_central": {
+            "senha": "admin123",
+            "tipo": "Cliente",
+            "vencimento": vencimento_padrao,
+            "status": "Ativo"
+        },
+        "barbearia_vanguard": {
+            "senha": "corte2026",
+            "tipo": "Teste",
+            "vencimento": (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"),
+            "status": "Ativo"
+        }
     }
     with open(USUARIOS_FILE, "w") as f:
         json.dump(usuarios_padrao, f, indent=4)
@@ -94,7 +127,17 @@ if not st.session_state.autenticado:
                 st.session_state.eh_admin = True
                 st.success("Acesso master concedido!")
                 st.rerun()
-            elif usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input] == senha_input:
+            elif usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input]["senha"] == senha_input:
+                
+                # --- VALIDAÇÃO DE EXPIRAÇÃO AUTOMÁTICA ---
+                dados_user = usuarios_cadastrados[usuario_input]
+                data_vencimento = datetime.strptime(dados_user["vencimento"], "%Y-%m-%d").date()
+                hoje = datetime.now().date()
+                
+                if hoje > data_vencimento or dados_user.get("status") == "Suspenso":
+                    st.error(f"❌ ACESSO BLOQUEADO! O período de {dados_user['tipo']} venceu em {data_vencimento.strftime('%d/%m/%Y')}. Entre em contato com o suporte para renovação.")
+                    st.stop()
+                
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = usuario_input
                 st.session_state.eh_admin = False
@@ -107,47 +150,70 @@ if not st.session_state.autenticado:
     st.stop()
 
 # =====================================================================
-# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE (GERENCIAR CLIENTES) ---
+# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE (GERENCIAR LICENÇAS) ---
 # =====================================================================
 if st.session_state.eh_admin:
-    st.title("👑 Central do Administrador - Gestão de Clientes")
-    st.markdown("Aqui você cadastra novos salões e gerencia os acessos do seu sistema.")
+    st.title("👑 Central do Administrador - Gestão de Clientes & Licenças")
+    st.markdown("Aqui você cadastra novos salões, define períodos de teste e gerencia vencimentos.")
     st.markdown("---")
     
-    col_cad, col_lista = st.columns([1, 1])
+    col_cad, col_lista = st.columns([1, 1.2])
     
     with col_cad:
-        st.subheader("➕ Registrar Novo Salão Cliente")
+        st.subheader("➕ Registrar ou Renovar Salão")
         with st.form("form_cadastro_cliente"):
             novo_usuario = st.text_input("Identificador/Usuário do Salão:", help="Ex: salao_do_bairro").strip().lower()
             nova_senha = st.text_input("Senha de Acesso:", type="password").strip()
-            btn_cadastrar = st.form_submit_button("Criar Conta do Salão", type="primary")
+            
+            tipo_conta = st.selectbox("Tipo de Conta:", ["Teste", "Cliente"])
+            dias_validade = st.number_input("Dias de Acesso/Validade:", min_value=1, max_value=365, value=7 if tipo_conta == "Teste" else 30)
+            
+            btn_cadastrar = st.form_submit_button("Salvar / Atualizar Conta", type="primary")
             
             if btn_cadastrar:
                 if not novo_usuario or not nova_senha:
-                    st.error("Preencha todos os campos para cadastrar.")
-                elif novo_usuario in usuarios_cadastrados or novo_usuario == ADMIN_MESTRE_USER:
-                    st.error("Este nome de usuário já está sendo utilizado.")
+                    st.error("Preencha o usuário e senha para salvar.")
+                elif novo_usuario == ADMIN_MESTRE_USER:
+                    st.error("Nome reservado do sistema.")
                 else:
-                    usuarios_cadastrados[novo_usuario] = nova_senha
+                    vencimento_calculado = (datetime.now() + timedelta(days=dias_validade)).strftime("%Y-%m-%d")
+                    usuarios_cadastrados[novo_usuario] = {
+                        "senha": nova_senha,
+                        "tipo": tipo_conta,
+                        "vencimento": vencimento_calculado,
+                        "status": "Ativo"
+                    }
                     salvar_usuarios(usuarios_cadastrados)
-                    st.success(f"Sucesso! O salão '{novo_usuario}' já pode acessar o sistema.")
+                    st.success(f"Sucesso! Salão '{novo_usuario}' configurado como '{tipo_conta}' válido por {dias_validade} dias (Até {datetime.strptime(vencimento_calculado, '%Y-%m-%d').strftime('%d/%m/%Y')}).")
                     st.rerun()
                     
     with col_lista:
-        st.subheader("👥 Salões Ativos no Sistema")
-        df_usuarios = pd.DataFrame(list(usuarios_cadastrados.items()), columns=["Usuário / Salão", "Senha de Acesso"])
-        st.dataframe(df_usuarios, use_container_width=True)
+        st.subheader("👥 Salões Cadastrados e Status de Licença")
+        
+        # Montar um DataFrame amigável para exibição das licenças
+        lista_formatada = []
+        for user, info in usuarios_cadastrados.items():
+            dt_venc = datetime.strptime(info['vencimento'], "%Y-%m-%d").date()
+            status_real = "Ativo" if datetime.now().date() <= dt_venc else "🔴 Expirado"
+            lista_formatada.append({
+                "Salão / Usuário": user,
+                "Tipo": info["tipo"],
+                "Vencimento": dt_venc.strftime("%d/%m/%Y"),
+                "Situação": status_real
+            })
+            
+        df_usuarios = pd.DataFrame(lista_formatada)
+        st.dataframe(df_usuarios, use_container_width=True, hide_index=True)
         
         st.markdown("---")
-        st.subheader("🗑️ Remover Acesso de um Salão")
+        st.subheader("🗑️ Cancelar Conta Permanentemente")
         salao_remover = st.selectbox("Selecione o salão que deseja deletar:", ["Selecione..."] + list(usuarios_cadastrados.keys()))
         
         if st.button("Excluir Conta Permanentemente", type="primary"):
             if salao_remover != "Selecione...":
                 del usuarios_cadastrados[salao_remover]
                 salvar_usuarios(usuarios_cadastrados)
-                st.warning(f"O acesso do salão '{salao_remover}' foi deletado.")
+                st.warning(f"O acesso do salão '{salao_remover}' foi totalmente removido do servidor.")
                 st.rerun()
             else:
                 st.error("Selecione um salão válido para remover.")
@@ -169,7 +235,11 @@ if st.session_state.eh_admin:
 
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
 st.title(f"✂️ {nome_salao_formatado} - Gestão Financeira")
-st.markdown(f"*Painel exclusivo e isolado de dados*")
+
+# Mostrar detalhes da licença do próprio usuário logado de maneira sutil
+dados_proprios = usuarios_cadastrados[st.session_state.usuario_logado]
+venc_f = datetime.strptime(dados_proprios['vencimento'], "%Y-%m-%d").strftime("%d/%m/%Y")
+st.markdown(f"*Painel Exclusivo | Licença Tipo: **{dados_proprios['tipo']}** (Válida até {venc_f})*")
 st.markdown("---")
 
 # --- SIDEBAR: GERENCIAR SERVIÇOS ---
@@ -203,7 +273,7 @@ with st.sidebar:
                 
                 st.session_state.servicos[novo_servico] = novo_preco
                 salvar_servicos(st.session_state.servicos)
-                st.success("Serviço updated!")
+                st.success("Serviço atualizado!")
                 st.rerun()
             else:
                 st.error("O nome do serviço não pode ser vazio.")
@@ -232,12 +302,13 @@ with st.sidebar:
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
 
-# --- TAB 2: LANÇAR MOVIMENTAÇÃO ---
+# --- TAB 2: LANÇAR MOVIMENTAÇÃO (LAYOUT ULTRA PROFISSIONAL E LIMPO) ---
 with tab2:
-    col1, col2, col3 = st.columns(3)
+    st.markdown("### 🛠️ Central de Lançamentos")
+    st.markdown("Clique nos quadros abaixo para abrir os formulários de registro.")
     
-    with col1:
-        st.subheader("📥 Entrada (Atendimento Pago)")
+    # QUADRO 1: ENTRADAS (ATENDIMENTO PAGO)
+    with st.expander("📥 REGISTRAR ENTRADA (Atendimento Concluído e Pago)", expanded=False):
         if list(st.session_state.servicos.keys()):
             servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
             preco_sugerido = st.session_state.servicos[servico_selecionado]
@@ -245,7 +316,7 @@ with tab2:
             preco_final = st.number_input("Valor Cobrado (R$):", value=preco_sugerido, step=1.0, key=f"entrada_val_{servico_selecionado}")
             data_entrada = st.date_input("Data do Atendimento:", datetime.now().date(), key="entrada_data")
             
-            if st.button("Registrar Entrada"):
+            if st.button("Confirmar e Lançar Entrada", type="primary"):
                 nova_linha = pd.DataFrame([{
                     "Data": pd.to_datetime(data_entrada),
                     "Tipo": "Entrada",
@@ -254,18 +325,18 @@ with tab2:
                 }])
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
                 salvar_fluxo(st.session_state.fluxo_caixa) 
-                st.success("Entrada registrada com sucesso!")
+                st.success("Entrada financeira registrada!")
                 st.rerun()
         else:
             st.info("Cadastre pelo menos um serviço na barra lateral para registrar entradas.")
 
-    with col2:
-        st.subheader("📤 Saída (Pagamento de Despesas)")
-        descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Água):")
+    # QUADRO 2: SAÍDAS (DESPESAS)
+    with st.expander("📤 REGISTRAR SAÍDA (Pagamento de Contas e Custos)", expanded=False):
+        descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
         valor_saida = st.number_input("Valor da Despesa (R$):", min_value=0.0, step=5.0, key="saida_val")
         data_saida = st.date_input("Data do Pagamento:", datetime.now().date(), key="saida_data")
         
-        if st.button("Registrar Saída", type="primary"):
+        if st.button("Confirmar e Lançar Saída", type="primary"):
             if descricao_saida and valor_saida > 0:
                 nova_linha = pd.DataFrame([{
                     "Data": pd.to_datetime(data_saida),
@@ -275,22 +346,22 @@ with tab2:
                 }])
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
                 salvar_fluxo(st.session_state.fluxo_caixa) 
-                st.success("Despesa registrada com sucesso!")
+                st.success("Despesa lançada com sucesso!")
                 st.rerun()
             else:
                 st.error("Preencha a descrição e o valor da despesa.")
 
-    with col3:
-        st.subheader("⏳ Pendência (Corte Fiado)")
+    # QUADRO 3: PRODUTO FIADO (PENDÊNCIAS)
+    with st.expander("⏳ REGISTRAR PENDÊNCIA (Corte / Serviço Fiado)", expanded=False):
         if list(st.session_state.servicos.keys()):
-            nome_devedor = st.text_input("Nome do Cliente (Quem deve?):", key="input_nome_devedor").strip()
+            nome_devedor = st.text_input("Nome do Cliente (Quem ficou devendo?):", key="input_nome_devedor").strip()
             servico_pendente = st.selectbox("Selecione o Serviço feito:", list(st.session_state.servicos.keys()), key="selectbox_servico_pendencia")
             preco_sugerido_p = st.session_state.servicos[servico_pendente]
             
             preco_final_p = st.number_input("Valor Pendente (R$):", value=preco_sugerido_p, step=1.0, key=f"pendencia_val_{servico_pendente}")
-            data_pendencia = st.date_input("Data do Combinado:", datetime.now().date(), key="pendencia_data")
+            data_pendencia = st.date_input("Data da Realização:", datetime.now().date(), key="pendencia_data")
             
-            if st.button("Registrar Pendência (Fiado)"):
+            if st.button("Salvar Registro de Fiado", type="primary"):
                 if nome_devedor:
                     nova_linha = pd.DataFrame([{
                         "Data": pd.to_datetime(data_pendencia),
@@ -300,48 +371,44 @@ with tab2:
                     }])
                     st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
                     salvar_fluxo(st.session_state.fluxo_caixa) 
-                    st.success(f"Pendência de {nome_devedor} anotada com sucesso!")
+                    st.success(f"Pendência de {nome_devedor} anotada.")
                     st.rerun()
                 else:
-                    st.error("Por favor, digite o nome do cliente para registrar a pendência.")
-            
-            # --- NOVA FUNÇÃO: DAR BAIXA EM PENDÊNCIAS ATIVAS ---
-            st.markdown("---")
-            st.subheader("✅ Confirmar Pagamento de Fiado")
-            
-            df_fluxo_atual = st.session_state.fluxo_caixa
-            df_pendencias = df_fluxo_atual[df_fluxo_atual['Tipo'] == 'Pendência']
-            
-            if not df_pendencias.empty:
-                opcoes_pendentes = {}
-                for idx, row in df_pendencias.iterrows():
-                    try:
-                        data_f = pd.to_datetime(row['Data']).strftime('%d/%m/%Y')
-                    except:
-                        data_f = str(row['Data'])
-                    label_opcao = f"{row['Descrição']} - R$ {abs(row['Valor']):.2f} ({data_f})"
-                    opcoes_pendentes[label_opcao] = idx
-                    
-                pendencia_selecionada = st.selectbox("Selecione a pendência paga:", list(opcoes_pendentes.keys()), key="sb_dar_baixa_fiado")
-                
-                if st.button("Confirmar Recebimento", type="primary", key="btn_confirmar_baixa_fiado"):
-                    idx_alterar = opcoes_pendentes[pendencia_selecionada]
-                    
-                    # Altera o Tipo para Entrada (vai ficar Verde no histórico)
-                    st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
-                    # Atualiza a data para HOJE para impactar o caixa do dia atual do fechamento
-                    st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now().date())
-                    # Atualiza a descrição informando que foi liquidado
-                    desc_anterior = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição']
-                    st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = desc_anterior.replace("Fiado de:", "Recebido Fiado:") + " [PAGO HOJE]"
-                    
-                    salvar_fluxo(st.session_state.fluxo_caixa)
-                    st.success("Excelente! O dinheiro entrou na contabilidade de hoje e o histórico foi atualizado.")
-                    st.rerun()
-            else:
-                st.info("Não há nenhuma pendência (fiado) em aberto no momento.")
+                    st.error("Por favor, preencha o nome do cliente.")
         else:
             st.info("Cadastre pelo menos um serviço na barra lateral para registrar pendências.")
+
+    # QUADRO 4: CONFIRMAR PAGAMENTO DE FIADO
+    with st.expander("✅ CONFIRMAR RECEBIMENTO DE FIADO (Dar Baixa)", expanded=False):
+        df_fluxo_atual = st.session_state.fluxo_caixa
+        df_pendencias = df_fluxo_atual[df_fluxo_atual['Tipo'] == 'Pendência']
+        
+        if not df_pendencias.empty:
+            opcoes_pendentes = {}
+            for idx, row in df_pendencias.iterrows():
+                try:
+                    data_f = pd.to_datetime(row['Data']).strftime('%d/%m/%Y')
+                except:
+                    data_f = str(row['Data'])
+                label_opcao = f"{row['Descrição']} - R$ {abs(row['Valor']):.2f} ({data_f})"
+                opcoes_pendentes[label_opcao] = idx
+                
+            pendencia_selecionada = st.selectbox("Selecione o cliente que está pagando agora:", list(opcoes_pendentes.keys()), key="sb_dar_baixa_fiado")
+            
+            if st.button("Baixar Débito e Registrar Entrada de Caixa", type="primary", key="btn_confirmar_baixa_fiado"):
+                idx_alterar = opcoes_pendentes[pendencia_selecionada]
+                
+                st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
+                st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now().date())
+                
+                desc_anterior = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição']
+                st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = desc_anterior.replace("Fiado de:", "Recebido Fiado:") + " [PAGO HOJE]"
+                
+                salvar_fluxo(st.session_state.fluxo_caixa)
+                st.success("Sucesso! O valor foi migrado para as Entradas de hoje.")
+                st.rerun()
+        else:
+            st.info("Não existem contas fiadas em aberto no momento.")
 
 # --- LÓGICA DE CÁLCULO DOS GANHOS (D/W/M) ---
 df = st.session_state.fluxo_caixa.copy()
