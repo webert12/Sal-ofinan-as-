@@ -7,44 +7,48 @@ import json
 # Configuração da página (Sempre o primeiro comando do Streamlit)
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CSS PERSONALIZADO (Esconde menus nativos e destaca o botão da barra lateral) ---
+# --- CSS PERSONALIZADO (Remove menus de desenvolvedor e destaca o botão de menu) ---
 hide_and_style_sidebar = """
             <style>
-            /* Esconde o menu de 3 pontinhos e o rodapé padrão */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
+            /* Remove completamente os botões do canto superior direito (Share, Star, Edit, GitHub e 3 Pontos) */
+            #MainMenu {visibility: hidden; display: none !important;}
+            footer {visibility: hidden; display: none !important;}
+            .stAppDeployButton {display: none !important;}
+            [data-testid="stDecoration"] {display: none !important;}
+            button[data-testid="stHeaderActionButton"] {display: none !important;}
             
-            /* Deixa o cabeçalho transparente para não sumir com o botão lateral */
+            /* Deixa o cabeçalho transparente para não atrapalhar o design */
             header {
                 background-color: transparent !important;
             }
             
-            /* Torna o botão de abrir/fechar a barra lateral GRANDE e VISÍVEL */
+            /* Torna o botão de abrir/fechar o menu lateral GRANDE, FLUTUANTE e ULTRA VISÍVEL */
             button[data-testid="stSidebarCollapseButton"] {
-                background-color: #1E1E2F !important; /* Cor de fundo escura e elegante */
-                color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral) */
-                border: 2px solid #FF4B4B !important; /* Borda chamativa ao redor */
+                background-color: #1E1E2F !important; /* Cor de fundo escura e moderna */
+                color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral de destaque) */
+                border: 2px solid #FF4B4B !important; /* Borda chamativa para guiar o clique */
                 border-radius: 10px !important;       /* Cantos arredondados */
-                width: 52px !important;               /* Largura maior para facilitar o toque */
-                height: 52px !important;              /* Altura maior para facilitar o toque */
-                box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4) !important; /* Sombra para flutuar na tela */
+                width: 54px !important;               /* Largura ideal para o toque no celular */
+                height: 54px !important;              /* Altura ideal para o toque no celular */
+                box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.35) !important; /* Brilho/Sombra de destaque */
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 transition: all 0.3s ease !important;
+                z-index: 99999 !important;
             }
             
-            /* Aumenta o tamanho do ícone das setinhas dentro do botão */
+            /* Aumenta o tamanho do ícone de menu dentro do próprio botão */
             button[data-testid="stSidebarCollapseButton"] svg {
-                width: 28px !important;
-                height: 28px !important;
+                width: 30px !important;
+                height: 30px !important;
             }
             
-            /* Efeito visual ao passar o mouse ou tocar no botão */
+            /* Efeito visual moderno ao passar o mouse ou clicar */
             button[data-testid="stSidebarCollapseButton"]:hover {
                 background-color: #FF4B4B !important;
                 color: #FFFFFF !important;
-                transform: scale(1.05);
+                transform: scale(1.08);
                 cursor: pointer;
             }
             </style>
@@ -317,7 +321,7 @@ with st.sidebar:
                 
                 st.session_state.servicos[novo_servico] = novo_preco
                 salvar_servicos(st.session_state.servicos)
-                st.success("Serviço updated!")
+                st.success("Serviço atualizado!")
                 st.rerun()
             else:
                 st.error("O nome do serviço não pode ser vazio.")
