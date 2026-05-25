@@ -9,20 +9,28 @@ st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page
 
 USUARIOS_FILE = "usuarios.json"
 
-# --- FUNÇÃO DE GERENCIAMENTO DE USUÁRIOS (SALAÕES) ---
+# --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
+# Altere aqui o seu usuário e senha de criador do sistema:
+ADMIN_MESTRE_USER = "admin"
+ADMIN_MESTRE_PASS = "master2026"
+
+# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (SALÕES) ---
 def carregar_usuarios():
     if os.path.exists(USUARIOS_FILE):
         with open(USUARIOS_FILE, "r") as f:
             return json.load(f)
-    # Usuários padrão criados automaticamente para você testar (Altere ou adicione mais aqui!)
+    # Lista inicial caso o arquivo não exista
     usuarios_padrao = {
         "salao_central": "admin123",
-        "barbearia_vanguard": "corte2026",
-        "salao_fashion": "senha789"
+        "barbearia_vanguard": "corte2026"
     }
     with open(USUARIOS_FILE, "w") as f:
         json.dump(usuarios_padrao, f, indent=4)
     return usuarios_padrao
+
+def salvar_usuarios(usuarios):
+    with open(USUARIOS_FILE, "w") as f:
+        json.dump(usuarios, f, indent=4)
 
 # --- FUNÇÕES DE PERSISTÊNCIA DE DADOS ISOLADOS POR USUÁRIO ---
 def obter_nomes_arquivos():
@@ -65,6 +73,8 @@ if 'autenticado' not in st.session_state:
     st.session_state.autenticado = False
 if 'usuario_logado' not in st.session_state:
     st.session_state.usuario_logado = None
+if 'eh_admin' not in st.session_state:
+    st.session_state.eh_admin = False
 
 usuarios_cadastrados = carregar_usuarios()
 
@@ -74,27 +84,101 @@ if not st.session_state.autenticado:
     st.markdown("---")
     
     with st.form("form_login"):
-        st.subheader("Acesse o painel do seu Salão")
-        usuario_input = st.text_input("Usuário do Salão (Fornecido pelo Administrador):").strip()
+        st.subheader("Acesse seu Painel")
+        usuario_input = st.text_input("Usuário do Salão ou ADM:").strip().lower()
         senha_input = st.text_input("Senha:", type="password")
         botao_entrar = st.form_submit_button("Entrar no Sistema")
         
         if botao_entrar:
-            if usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input] == senha_input:
+            # Verifica primeiro se é o Administrador do Sistema
+            if usuario_input == ADMIN_MESTRE_USER and senha_input == ADMIN_MESTRE_PASS:
+                st.session_state.autenticado = True
+                st.session_state.usuario_logado = "Administrador"
+                st.session_state.eh_admin = True
+                st.success("Acesso master concedido!")
+                st.rerun()
+            
+            # Se não for o ADM, verifica se é um salão cliente cadastrado
+            elif usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input] == senha_input:
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = usuario_input
+                st.session_state.eh_admin = False
                 
-                # Inicializa as variáveis específicas deste salão logado
+                # Inicializa as variáveis específicas deste salão
                 st.session_state.servicos = carregar_servicos()
                 st.session_state.fluxo_caixa = carregar_fluxo()
                 
-                st.success(f"Login realizado com sucesso! Carregando dados de: {usuario_input}")
+                st.success(f"Carregando painel de {usuario_input}...")
                 st.rerun()
             else:
-                st.error("Usuário ou senha incorretos. Solicite seus acessos com o administrador.")
-    st.stop() # Interrompe a execução do app para quem não está logado
+                st.error("Usuário ou senha incorretos. Verifique suas credenciais.")
+    st.stop()
 
-# --- SE ESTIVER LOGADO, CARREGA O PAINEL ABAIXO ---
+# =====================================================================
+# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE (GERENCIAR CLIENTES) ---
+# =====================================================================
+if st.session_state.eh_admin:
+    st.title("👑 Central do Administrador - Gestão de Clientes")
+    st.markdown("Aqui você cadastra novos salões e gerencia os acessos do seu sistema.")
+    st.markdown("---")
+    
+    col_cad, col_lista = st.columns([1, 1])
+    
+    with col_cad:
+        st.subheader("➕ Registrar Novo Salão Cliente")
+        with st.form("form_cadastro_cliente"):
+            # Evitar espaços e caracteres especiais no nome do usuário para não quebrar nomes de arquivos
+            novo_usuario = st.text_input("Identificador/Usuário do Salão:", help="Ex: salao_do_bairro (Use apenas letras, números e _ )").strip().lower()
+            nova_senha = st.text_input("Senha de Acesso:", type="password").strip()
+            
+            btn_cadastrar = st.form_submit_button("Criar Conta do Salão", type="primary")
+            
+            if btn_cadastrar:
+                if not novo_usuario or not nova_senha:
+                    st.error("Preencha todos os campos para cadastrar.")
+                elif novo_usuario in usuarios_cadastrados or novo_usuario == ADMIN_MESTRE_USER:
+                    st.error("Este nome de usuário já está sendo utilizado.")
+                else:
+                    usuarios_cadastrados[novo_usuario] = nova_senha
+                    salvar_usuarios(usuarios_cadastrados)
+                    st.success(f"Sucesso! O salão '{novo_usuario}' já pode acessar o sistema.")
+                    st.rerun()
+                    
+    with col_lista:
+        st.subheader("👥 Salões Ativos no Sistema")
+        
+        # Converte o dicionário em DataFrame para exibição limpa
+        df_usuarios = pd.DataFrame(list(usuarios_cadastrados.items()), columns=["Usuário / Salão", "Senha de Acesso"])
+        st.dataframe(df_usuarios, use_container_width=True)
+        
+        st.markdown("---")
+        st.subheader("🗑️ Remover Acesso de um Salão")
+        salao_remover = st.selectbox("Selecione o salão que deseja deletar:", ["Selecione..."] + list(usuarios_cadastrados.keys()))
+        
+        if st.button("Excluir Conta Permanentemente", type="primary"):
+            if salao_remover != "Selecione...":
+                del usuarios_cadastrados[salao_remover]
+                salvar_usuarios(usuarios_cadastrados)
+                st.warning(f"O acesso do salão '{salao_remover}' foi deletado.")
+                st.rerun()
+            else:
+                st.error("Selecione um salão válido para remover.")
+
+    # Botão de Logout fixo na barra lateral para o Admin
+    with st.sidebar:
+        st.header("Painel Master")
+        st.info("Você está logado como Administrador Geral.")
+        if st.button("🚪 Sair do Modo ADM", use_container_width=True):
+            st.session_state.autenticado = False
+            st.session_state.usuario_logado = None
+            st.session_state.eh_admin = False
+            st.rerun()
+    st.stop()
+
+
+# =====================================================================
+# --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
+# =====================================================================
 
 # Título do App customizado com o nome do salão atual
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
@@ -157,6 +241,7 @@ with st.sidebar:
     if st.button("🚪 Sair do Painel", use_container_width=True):
         st.session_state.autenticado = False
         st.session_state.usuario_logado = None
+        st.session_state.eh_admin = False
         st.rerun()
 
 # --- ABAS DA TELA PRINCIPAL ---
@@ -292,7 +377,7 @@ with tab3:
                     return ['background-color: #f8d7da; color: #721c24; font-weight: bold'] * len(row)
                 return [''] * len(row)
             
-            # CORREÇÃO DO FORMATO DE VALOR: Transforma o float cru (.000000) em moeda legível (R$ XX,XX)
+            # FORMATO CORRIGIDO DE VALOR MONETÁRIO
             tabela_estilizada = df_visualizacao.style.apply(colorir_linhas, axis=1).format(
                 subset=["Valor"], 
                 formatter=lambda x: f"R$ {x:.2f}".replace('.', ',')
