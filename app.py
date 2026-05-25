@@ -10,96 +10,67 @@ st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page
 # --- CSS PERSONALIZADO ULTRA LIMPO (Bloqueio Total em Computador e Celular) ---
 hide_and_style_sidebar = """
             <style>
-            /* 1. Remoção de Elementos de Cabeçalho/Deploy (PC e Mobile) */
-            #MainMenu, 
-            .stAppDeployButton, 
-            [data-testid="stAppDeployButton"],
-            [data-testid="stDecoration"], 
-            [data-testid="stHeaderActionElements"], 
-            .stHeaderActionElements,
-            button[data-testid="stHeaderActionButton"],
-            header a {
+            /* 1. Remove a barra de decoração superior colorida */
+            [data-testid="stDecoration"] {
                 display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-                width: 0 !important;
-                height: 0 !important;
             }
             
-            /* Remove qualquer botão extra do cabeçalho no mobile, exceto o de abrir/fechar menu */
-            header button:not([data-testid="stSidebarCollapseButton"]) {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-            }
-            
-            /* Deixa o fundo do cabeçalho invisível */
-            header {
+            /* 2. Deixa o cabeçalho transparente e desativa os cliques nele para não bloquear o app */
+            [data-testid="stHeader"], header {
                 background-color: transparent !important;
                 box-shadow: none !important;
+                pointer-events: none !important;
             }
             
-            /* 2. Remoção Total Absoluta do Rodapé (PC e Mobile) */
-            footer, 
-            [data-testid="stFooter"], 
-            .stFooter,
-            footer a,
-            footer div {
+            /* 3. Oculta botões de Deploy e o menu de 3 pontos original */
+            [data-testid="stAppDeployButton"], 
+            #MainMenu, 
+            [data-testid="stHeaderActionElements"],
+            .stHeaderActionElements,
+            button[data-testid="stHeaderActionButton"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* 4. Oculta TOTALMENTE o rodapé do Streamlit e o botão flutuante de gerenciamento */
+            footer, [data-testid="stFooter"], .stFooter, 
+            [data-testid="stManageAppButton"], .stManageAppButton,
+            div[class*="stManageAppButton"], div[data-testid="stManageAppButton"] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0 !important;
                 opacity: 0 !important;
             }
             
-            /* 3. Remoção do Botão Flutuante Inferior Direito "Gerenciar aplicativo" (PC e Mobile) */
-            [data-testid="stManageAppButton"],
-            .stManageAppButton,
-            div[class*="stManageAppButton"],
-            div[data-testid="stManageAppButton"] {
-                display: none !important;
-                visibility: hidden !important;
-                opacity: 0 !important;
-            }
-            
-            /* 4. Preservação e Estilização Forçada do Botão de Menu em Qualquer Tela */
-            button[data-testid="stSidebarCollapseButton"],
-            header button[data-testid="stSidebarCollapseButton"] {
+            /* 5. Garante que o botão de abrir/fechar o menu lateral fique visível e funcional */
+            button[data-testid="stSidebarCollapseButton"] {
                 display: flex !important;
                 visibility: visible !important;
                 opacity: 1 !important;
+                pointer-events: auto !important; /* Reativa o clique perfeito no botão */
                 background-color: #1E1E2F !important; /* Cor de fundo escura */
-                color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral) */
-                border: 2px solid #FF4B4B !important; /* Borda chamativa */
+                color: #FF4B4B !important;           /* Cor das setinhas */
+                border: 2px solid #FF4B4B !important; /* Borda destacada */
                 border-radius: 10px !important;       /* Cantos arredondados */
-                width: 54px !important;               /* Largura */
-                height: 54px !important;              /* Altura */
-                box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.4) !important; /* Brilho neon suave */
-                align-items: center !important;
-                justify-content: center !important;
+                box-shadow: 0px 4px 15px rgba(255, 75, 75, 0.4) !important; /* Brilho neon */
                 transition: all 0.3s ease !important;
-                z-index: 999999 !important;          /* Fica acima de tudo */
-                position: relative !important;
+                z-index: 999999 !important;
             }
             
-            /* Garante o tamanho e preenchimento correto do ícone do menu no mobile e PC */
-            button[data-testid="stSidebarCollapseButton"] svg,
-            header button[data-testid="stSidebarCollapseButton"] svg {
-                width: 30px !important;
-                height: 30px !important;
-                display: block !important;
+            /* Mantém a cor correta das setas/ícone */
+            button[data-testid="stSidebarCollapseButton"] svg {
                 fill: #FF4B4B !important;
                 color: #FF4B4B !important;
             }
             
-            /* Efeito de Hover moderno */
+            /* Efeito moderno ao passar o mouse */
             button[data-testid="stSidebarCollapseButton"]:hover {
                 background-color: #FF4B4B !important;
                 color: #FFFFFF !important;
-                transform: scale(1.08);
-                cursor: pointer;
+                transform: scale(1.05);
+                cursor: pointer !important;
             }
             
-            /* Corrige cor do ícone interno no efeito hover */
             button[data-testid="stSidebarCollapseButton"]:hover svg {
                 fill: #FFFFFF !important;
                 color: #FFFFFF !important;
