@@ -10,7 +10,6 @@ st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page
 USUARIOS_FILE = "usuarios.json"
 
 # --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
-# Altere aqui o seu usuário e senha de criador do sistema:
 ADMIN_MESTRE_USER = "admin"
 ADMIN_MESTRE_PASS = "master2026"
 
@@ -19,7 +18,6 @@ def carregar_usuarios():
     if os.path.exists(USUARIOS_FILE):
         with open(USUARIOS_FILE, "r") as f:
             return json.load(f)
-    # Lista inicial caso o arquivo não exista
     usuarios_padrao = {
         "salao_central": "admin123",
         "barbearia_vanguard": "corte2026"
@@ -90,24 +88,18 @@ if not st.session_state.autenticado:
         botao_entrar = st.form_submit_button("Entrar no Sistema")
         
         if botao_entrar:
-            # Verifica primeiro se é o Administrador do Sistema
             if usuario_input == ADMIN_MESTRE_USER and senha_input == ADMIN_MESTRE_PASS:
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = "Administrador"
                 st.session_state.eh_admin = True
                 st.success("Acesso master concedido!")
                 st.rerun()
-            
-            # Se não for o ADM, verifica se é um salão cliente cadastrado
             elif usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input] == senha_input:
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = usuario_input
                 st.session_state.eh_admin = False
-                
-                # Inicializa as variáveis específicas deste salão
                 st.session_state.servicos = carregar_servicos()
                 st.session_state.fluxo_caixa = carregar_fluxo()
-                
                 st.success(f"Carregando painel de {usuario_input}...")
                 st.rerun()
             else:
@@ -127,10 +119,8 @@ if st.session_state.eh_admin:
     with col_cad:
         st.subheader("➕ Registrar Novo Salão Cliente")
         with st.form("form_cadastro_cliente"):
-            # Evitar espaços e caracteres especiais no nome do usuário para não quebrar nomes de arquivos
-            novo_usuario = st.text_input("Identificador/Usuário do Salão:", help="Ex: salao_do_bairro (Use apenas letras, números e _ )").strip().lower()
+            novo_usuario = st.text_input("Identificador/Usuário do Salão:", help="Ex: salao_do_bairro").strip().lower()
             nova_senha = st.text_input("Senha de Acesso:", type="password").strip()
-            
             btn_cadastrar = st.form_submit_button("Criar Conta do Salão", type="primary")
             
             if btn_cadastrar:
@@ -146,8 +136,6 @@ if st.session_state.eh_admin:
                     
     with col_lista:
         st.subheader("👥 Salões Ativos no Sistema")
-        
-        # Converte o dicionário em DataFrame para exibição limpa
         df_usuarios = pd.DataFrame(list(usuarios_cadastrados.items()), columns=["Usuário / Salão", "Senha de Acesso"])
         st.dataframe(df_usuarios, use_container_width=True)
         
@@ -164,7 +152,6 @@ if st.session_state.eh_admin:
             else:
                 st.error("Selecione um salão válido para remover.")
 
-    # Botão de Logout fixo na barra lateral para o Admin
     with st.sidebar:
         st.header("Painel Master")
         st.info("Você está logado como Administrador Geral.")
@@ -180,13 +167,12 @@ if st.session_state.eh_admin:
 # --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
-# Título do App customizado com o nome do salão atual
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
 st.title(f"✂️ {nome_salao_formatado} - Gestão Financeira")
 st.markdown(f"*Painel exclusivo e isolado de dados*")
 st.markdown("---")
 
-# --- SIDEBAR: GERENCIAR SERVIÇOS (CRIAÇÃO E EDIÇÃO) ---
+# --- SIDEBAR: GERENCIAR SERVIÇOS ---
 with st.sidebar:
     st.header("⚙️ Configurações de Serviços")
     st.markdown("Selecione um serviço para alterar ou escolha criar um novo.")
@@ -236,7 +222,6 @@ with st.sidebar:
     for serv, preco in st.session_state.servicos.items():
         st.text(f"• {serv}: R$ {preco:.2f}")
         
-    # Botão de Logout para permitir trocar de salão com segurança
     st.markdown("---")
     if st.button("🚪 Sair do Painel", use_container_width=True):
         st.session_state.autenticado = False
@@ -247,12 +232,12 @@ with st.sidebar:
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
 
-# --- TAB 2: LANÇAR MOVIMENTAÇÃO ---
+# --- TAB 2: LANÇAR MOVIMENTAÇÃO (AGORA COM 3 COLUNAS) ---
 with tab2:
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.subheader("📥 Entrada (Atendimento ao Cliente)")
+        st.subheader("📥 Entrada (Atendimento Pago)")
         if list(st.session_state.servicos.keys()):
             servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
             preco_sugerido = st.session_state.servicos[servico_selecionado]
@@ -294,6 +279,33 @@ with tab2:
                 st.rerun()
             else:
                 st.error("Preencha a descrição e o valor da despesa.")
+
+    with col3:
+        st.subheader("⏳ Pendência (Corte Fiado)")
+        if list(st.session_state.servicos.keys()):
+            nome_devedor = st.text_input("Nome do Cliente (Quem deve?):", key="input_nome_devedor").strip()
+            servico_pendente = st.selectbox("Selecione o Serviço feito:", list(st.session_state.servicos.keys()), key="selectbox_servico_pendencia")
+            preco_sugerido_p = st.session_state.servicos[servico_pendente]
+            
+            preco_final_p = st.number_input("Valor Pendente (R$):", value=preco_sugerido_p, step=1.0, key=f"pendencia_val_{servico_pendente}")
+            data_pendencia = st.date_input("Data do Combinado:", datetime.now().date(), key="pendencia_data")
+            
+            if st.button("Registrar Pendência (Fiado)"):
+                if nome_devedor:
+                    nova_linha = pd.DataFrame([{
+                        "Data": pd.to_datetime(data_pendencia),
+                        "Tipo": "Pendência",
+                        "Descrição": f"Fiado de: {nome_devedor} ({servico_pendente})",
+                        "Valor": preco_final_p
+                    }])
+                    st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
+                    salvar_fluxo(st.session_state.fluxo_caixa) 
+                    st.success(f"Pendência de {nome_devedor} anotada com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("Por favor, digite o nome do cliente para registrar a pendência.")
+        else:
+            st.info("Cadastre pelo menos um serviço na barra lateral para registrar pendências.")
 
 # --- LÓGICA DE CÁLCULO DOS GANHOS (D/W/M) ---
 df = st.session_state.fluxo_caixa.copy()
@@ -369,15 +381,16 @@ with tab3:
             df_visualizacao['Data'] = df_visualizacao['Data'].dt.strftime('%d/%m/%Y')
             df_visualizacao = df_visualizacao.drop(columns=['Mês/Ano'])
             
-            # FUNÇÃO DE ESTILIZAÇÃO DAS LINHAS
+            # FUNÇÃO DE ESTILIZAÇÃO COMPLETA (VERDE, VERMELHO E AMARELO)
             def colorir_linhas(row):
                 if row['Tipo'] == 'Entrada':
                     return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
                 elif row['Tipo'] == 'Saída':
                     return ['background-color: #f8d7da; color: #721c24; font-weight: bold'] * len(row)
+                elif row['Tipo'] == 'Pendência':
+                    return ['background-color: #fff3cd; color: #856404; font-weight: bold'] * len(row)
                 return [''] * len(row)
             
-            # FORMATO CORRIGIDO DE VALOR MONETÁRIO
             tabela_estilizada = df_visualizacao.style.apply(colorir_linhas, axis=1).format(
                 subset=["Valor"], 
                 formatter=lambda x: f"R$ {x:.2f}".replace('.', ',')
