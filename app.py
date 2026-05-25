@@ -7,7 +7,7 @@ import json
 # Configuração da página (Sempre o primeiro comando do Streamlit)
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CSS PERSONALIZADO ULTRA LIMPO (Bloqueio Total em Computador e Celular) ---
+# --- CSS PERSONALIZADO ULTRA LIMPO (Bloqueio Total de Elementos Cloud e Streamlit) ---
 hide_and_style_sidebar = """
             <style>
             /* 1. Remove a barra de decoração superior colorida */
@@ -15,39 +15,55 @@ hide_and_style_sidebar = """
                 display: none !important;
             }
             
-            /* 2. Deixa o cabeçalho transparente e desativa os cliques nele para não bloquear o app */
+            /* 2. Reduz o espaçamento excessivo no topo para o painel subir */
+            .main .block-container {
+                padding-top: 4rem !important;
+                padding-bottom: 1rem !important;
+            }
+            
+            /* 3. Limpa o cabeçalho original e desativa cliques residuais */
             [data-testid="stHeader"], header {
                 background-color: transparent !important;
                 box-shadow: none !important;
-                pointer-events: none !important;
             }
             
-            /* 3. Oculta botões de Deploy e o menu de 3 pontos original */
+            /* Oculta todos os botões do cabeçalho da Nuvem/Streamlit (Share, Fork, Star, GitHub, Deploy e 3 Pontos) */
             [data-testid="stAppDeployButton"], 
             #MainMenu, 
             [data-testid="stHeaderActionElements"],
             .stHeaderActionElements,
-            button[data-testid="stHeaderActionButton"] {
+            button[data-testid="stHeaderActionButton"],
+            .stAppToolbar,
+            div[class*="stAppToolbar"],
+            header button:not([data-testid="stSidebarCollapseButton"]),
+            header a {
                 display: none !important;
                 visibility: hidden !important;
+                width: 0 !important;
+                height: 0 !important;
             }
             
-            /* 4. Oculta TOTALMENTE o rodapé do Streamlit e o botão flutuante de gerenciamento */
+            /* 4. Oculta TOTALMENTE o rodapé do Streamlit e o botão flutuante inferior 'Gerenciar aplicativo' (+) */
             footer, [data-testid="stFooter"], .stFooter, 
             [data-testid="stManageAppButton"], .stManageAppButton,
-            div[class*="stManageAppButton"], div[data-testid="stManageAppButton"] {
+            div[class*="stManageAppButton"], div[data-testid="stManageAppButton"],
+            button[data-testid="stManageAppButton"], iframe[title="manage-app"] {
                 display: none !important;
                 visibility: hidden !important;
                 height: 0 !important;
+                width: 0 !important;
                 opacity: 0 !important;
             }
             
-            /* 5. Garante que o botão de abrir/fechar o menu lateral fique visível e funcional */
+            /* 5. Garante que o botão de abrir/fechar o menu lateral fique perfeitamente fixado logo acima do título */
             button[data-testid="stSidebarCollapseButton"] {
                 display: flex !important;
                 visibility: visible !important;
                 opacity: 1 !important;
                 pointer-events: auto !important; /* Reativa o clique perfeito no botão */
+                position: fixed !important;
+                top: 15px !important;            /* Alinhado acima da tesoura ✂️ */
+                left: 20px !important;
                 background-color: #1E1E2F !important; /* Cor de fundo escura */
                 color: #FF4B4B !important;           /* Cor das setinhas */
                 border: 2px solid #FF4B4B !important; /* Borda destacada */
@@ -374,12 +390,12 @@ with st.sidebar:
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
 
-# --- TAB 2: LANÇAR MOVIMENTAÇÃO (LAYOUT ULTRA PROFISSIONAL E LIMPO) ---
+# --- TAB 2: LANÇAR MOVIMENTAÇÃO ---
 with tab2:
     st.markdown("### 🛠️ Central de Lançamentos")
     st.markdown("Clique nos quadros abaixo para abrir os formulários de registro.")
     
-    # QUADRO 1: ENTRADAS (ATENDIMENTO PAGO)
+    # QUADRO 1: ENTRADAS
     with st.expander("📥 REGISTRAR ENTRADA (Atendimento Concluído e Pago)", expanded=False):
         if list(st.session_state.servicos.keys()):
             servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
@@ -402,7 +418,7 @@ with tab2:
         else:
             st.info("Cadastre pelo menos um serviço na barra lateral para registrar entradas.")
 
-    # QUADRO 2: SAÍDAS (DESPESAS)
+    # QUADRO 2: SAÍDAS
     with st.expander("📤 REGISTRAR SAÍDA (Pagamento de Contas e Custos)", expanded=False):
         descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
         valor_saida = st.number_input("Valor da Despesa (R$):", min_value=0.0, step=5.0, key="saida_val")
@@ -423,7 +439,7 @@ with tab2:
             else:
                 st.error("Preencha a descrição e o valor da despesa.")
 
-    # QUADRO 3: PRODUTO FIADO (PENDÊNCIAS)
+    # QUADRO 3: PRODUTO FIADO
     with st.expander("⏳ REGISTRAR PENDÊNCIA (Corte / Serviço Fiado)", expanded=False):
         if list(st.session_state.servicos.keys()):
             nome_devedor = st.text_input("Nome do Cliente (Quem ficou devendo?):", key="input_nome_devedor").strip()
