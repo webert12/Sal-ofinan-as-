@@ -4,18 +4,52 @@ from datetime import datetime, timedelta
 import os
 import json
 
-# Código para esconder o menu do topo, o cabeçalho e o rodapé padrão
-hide_streamlit_style = """
+# Configuração da página (Sempre o primeiro comando do Streamlit)
+st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
+
+# --- CSS PERSONALIZADO (Esconde menus nativos e destaca o botão da barra lateral) ---
+hide_and_style_sidebar = """
             <style>
+            /* Esconde o menu de 3 pontinhos e o rodapé padrão */
             #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
             footer {visibility: hidden;}
+            
+            /* Deixa o cabeçalho transparente para não sumir com o botão lateral */
+            header {
+                background-color: transparent !important;
+            }
+            
+            /* Torna o botão de abrir/fechar a barra lateral GRANDE e VISÍVEL */
+            button[data-testid="stSidebarCollapseButton"] {
+                background-color: #1E1E2F !important; /* Cor de fundo escura e elegante */
+                color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral) */
+                border: 2px solid #FF4B4B !important; /* Borda chamativa ao redor */
+                border-radius: 10px !important;       /* Cantos arredondados */
+                width: 52px !important;               /* Largura maior para facilitar o toque */
+                height: 52px !important;              /* Altura maior para facilitar o toque */
+                box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.4) !important; /* Sombra para flutuar na tela */
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                transition: all 0.3s ease !important;
+            }
+            
+            /* Aumenta o tamanho do ícone das setinhas dentro do botão */
+            button[data-testid="stSidebarCollapseButton"] svg {
+                width: 28px !important;
+                height: 28px !important;
+            }
+            
+            /* Efeito visual ao passar o mouse ou tocar no botão */
+            button[data-testid="stSidebarCollapseButton"]:hover {
+                background-color: #FF4B4B !important;
+                color: #FFFFFF !important;
+                transform: scale(1.05);
+                cursor: pointer;
+            }
             </style>
             """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-# Configuração da página
-st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
+st.markdown(hide_and_style_sidebar, unsafe_allow_html=True)
 
 USUARIOS_FILE = "usuarios.json"
 
@@ -283,7 +317,7 @@ with st.sidebar:
                 
                 st.session_state.servicos[novo_servico] = novo_preco
                 salvar_servicos(st.session_state.servicos)
-                st.success("Serviço atualizado!")
+                st.success("Serviço updated!")
                 st.rerun()
             else:
                 st.error("O nome do serviço não pode ser vazio.")
