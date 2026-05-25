@@ -4,6 +4,17 @@ from datetime import datetime, timedelta
 import os
 import json
 
+# Código para esconder o menu do topo, o cabeçalho e o rodapé padrão
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+
 # Configuração da página
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
