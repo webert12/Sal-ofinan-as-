@@ -33,7 +33,6 @@ def carregar_fluxo():
             df['Data'] = pd.to_datetime(df['Data'])
             return df
         except Exception:
-            # Caso o arquivo esteja corrompido ou vazio, recria o esqueleto
             return pd.DataFrame(columns=["Data", "Tipo", "Descrição", "Valor"])
     return pd.DataFrame(columns=["Data", "Tipo", "Descrição", "Valor"])
 
@@ -124,7 +123,6 @@ if not df.empty:
     df['Data'] = pd.to_datetime(df['Data'])
     hoje = pd.Timestamp(datetime.now().date())
     
-    # Filtros temporais protegidos contra valores nulos
     df_limpo = df.dropna(subset=['Data'])
     df_diario = df_limpo[df_limpo['Data'].dt.date == hoje.date()]
     df_semanal = df_limpo[df_limpo['Data'] >= (hoje - timedelta(days=7))]
@@ -175,17 +173,15 @@ with tab3:
     st.subheader("📜 Histórico Completo de Transações")
     
     if not df.empty:
-        # CORREÇÃO CRÍTICA: Remove linhas sem data válida antes de gerar o filtro
         df_filtro = df.dropna(subset=['Data']).copy()
         df_filtro['Mês/Ano'] = df_filtro['Data'].dt.strftime('%m/%Y')
         
-        # Garante que os meses coletados sejam estritamente strings válidas e sem nulos (evita o crash)
         meses_puros = df_filtro['Mês/Ano'].dropna().unique()
         meses_disponiveis = sorted([str(m) for m in meses_puros if str(m).strip() and str(m) != 'nan'], reverse=True)
-        opcoes_filtro = ["Ver Tudo"] + meses_disponiveis
         
-        # CORREÇÃO CRÍTICA: Adicionado 'key' único para isolar o estado do componente
-        mes_escolhido = st.selectbox("📅 Selecione o mês que deseja consultar:", opciones_filtro, key="selectbox_filtro_mes_historico")
+        # CORRIGIDO: Nome da variável agora está idêntico nas duas linhas
+        opcoes_filtro = ["Ver Tudo"] + meses_disponiveis
+        mes_escolhido = st.selectbox("📅 Selecione o mês que deseja consultar:", opcoes_filtro, key="selectbox_filtro_mes_historico")
         
         if mes_escolhido != "Ver Tudo":
             df_exibicao = df_filtro[df_filtro['Mês/Ano'] == mes_escolhido].copy()
@@ -200,4 +196,3 @@ with tab3:
             st.info("Nenhum registro encontrado para este mês.")
     else:
         st.info("Nenhuma movimentação registrada até o momento.")
-            
