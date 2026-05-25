@@ -203,7 +203,7 @@ with st.sidebar:
                 
                 st.session_state.servicos[novo_servico] = novo_preco
                 salvar_servicos(st.session_state.servicos)
-                st.success("Serviço atualizado!")
+                st.success("Serviço updated!")
                 st.rerun()
             else:
                 st.error("O nome do serviço não pode ser vazio.")
@@ -232,7 +232,7 @@ with st.sidebar:
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
 
-# --- TAB 2: LANÇAR MOVIMENTAÇÃO (AGORA COM 3 COLUNAS) ---
+# --- TAB 2: LANÇAR MOVIMENTAÇÃO ---
 with tab2:
     col1, col2, col3 = st.columns(3)
     
@@ -304,6 +304,42 @@ with tab2:
                     st.rerun()
                 else:
                     st.error("Por favor, digite o nome do cliente para registrar a pendência.")
+            
+            # --- NOVA FUNÇÃO: DAR BAIXA EM PENDÊNCIAS ATIVAS ---
+            st.markdown("---")
+            st.subheader("✅ Confirmar Pagamento de Fiado")
+            
+            df_fluxo_atual = st.session_state.fluxo_caixa
+            df_pendencias = df_fluxo_atual[df_fluxo_atual['Tipo'] == 'Pendência']
+            
+            if not df_pendencias.empty:
+                opcoes_pendentes = {}
+                for idx, row in df_pendencias.iterrows():
+                    try:
+                        data_f = pd.to_datetime(row['Data']).strftime('%d/%m/%Y')
+                    except:
+                        data_f = str(row['Data'])
+                    label_opcao = f"{row['Descrição']} - R$ {abs(row['Valor']):.2f} ({data_f})"
+                    opcoes_pendentes[label_opcao] = idx
+                    
+                pendencia_selecionada = st.selectbox("Selecione a pendência paga:", list(opcoes_pendentes.keys()), key="sb_dar_baixa_fiado")
+                
+                if st.button("Confirmar Recebimento", type="primary", key="btn_confirmar_baixa_fiado"):
+                    idx_alterar = opcoes_pendentes[pendencia_selecionada]
+                    
+                    # Altera o Tipo para Entrada (vai ficar Verde no histórico)
+                    st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
+                    # Atualiza a data para HOJE para impactar o caixa do dia atual do fechamento
+                    st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now().date())
+                    # Atualiza a descrição informando que foi liquidado
+                    desc_anterior = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição']
+                    st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = desc_anterior.replace("Fiado de:", "Recebido Fiado:") + " [PAGO HOJE]"
+                    
+                    salvar_fluxo(st.session_state.fluxo_caixa)
+                    st.success("Excelente! O dinheiro entrou na contabilidade de hoje e o histórico foi atualizado.")
+                    st.rerun()
+            else:
+                st.info("Não há nenhuma pendência (fiado) em aberto no momento.")
         else:
             st.info("Cadastre pelo menos um serviço na barra lateral para registrar pendências.")
 
@@ -381,7 +417,6 @@ with tab3:
             df_visualizacao['Data'] = df_visualizacao['Data'].dt.strftime('%d/%m/%Y')
             df_visualizacao = df_visualizacao.drop(columns=['Mês/Ano'])
             
-            # FUNÇÃO DE ESTILIZAÇÃO COMPLETA (VERDE, VERMELHO E AMARELO)
             def colorir_linhas(row):
                 if row['Tipo'] == 'Entrada':
                     return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
