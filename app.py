@@ -222,7 +222,7 @@ if not st.session_state.autenticado:
         botao_entrar = st.form_submit_button("Entrar no Sistema")
         
         if botao_entrar:
-            if usuario_input == ADMIN_MEM_USER or (usuario_input == ADMIN_MESTRE_USER and senha_input == ADMIN_MESTRE_PASS):
+            if usuario_input == ADMIN_MESTRE_USER and senha_input == ADMIN_MESTRE_PASS:
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = "Administrador"
                 st.session_state.eh_admin = True
