@@ -3,8 +3,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 import json
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 
 # Código para esconder o menu do topo, o cabeçalho e o rodapé padrão
 hide_streamlit_style = """
@@ -14,6 +12,7 @@ hide_streamlit_style = """
             footer {visibility: hidden;}
             </style>
             """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Configuração da página
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
