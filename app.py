@@ -7,32 +7,35 @@ import json
 # Configuração da página (Sempre o primeiro comando do Streamlit)
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CSS PERSONALIZADO ULTRA LIMPO (Remove Fork, GitHub, Share e Gerenciar Aplicativo) ---
+# --- CSS PERSONALIZADO ULTRA LIMPO (Remove GitHub/Deploy e Garante o Botão de Menu) ---
 hide_and_style_sidebar = """
             <style>
-            /* 1. Remoção Total de Elementos Cloud/Git/Menu no Cabeçalho */
+            /* 1. Limpeza de Elementos Nativos e de Deploy do Cabeçalho */
             #MainMenu {visibility: hidden; display: none !important;}
-            footer {visibility: hidden; display: none !important;}
             .stAppDeployButton {display: none !important;}
             [data-testid="stDecoration"] {display: none !important;}
             
-            /* Remove botões de ação superiores (Share, Star, Edit, Fork, GitHub) */
+            /* Remove especificamente o bloco de ações superiores (GitHub, Share, Star, etc.) */
             [data-testid="stHeaderActionElements"], 
             .stHeaderActionElements, 
-            button[data-testid="stHeaderActionButton"],
-            header a, 
-            header button:not([data-testid="stSidebarCollapseButton"]) {
+            button[data-testid="stHeaderActionButton"] {
                 display: none !important;
                 visibility: hidden !important;
             }
             
-            /* Deixa o cabeçalho completamente limpo e invisível */
+            /* Deixa o fundo do cabeçalho invisível para não sobrepor nada */
             header {
                 background-color: transparent !important;
                 box-shadow: none !important;
             }
             
-            /* 2. Remoção do Botão Flutuante Inferior Direito ("Gerenciar aplicativo") */
+            /* 2. Remoção Total e Absoluta do Rodapé ("Made with Streamlit") */
+            footer, [data-testid="stFooter"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* Remove por completo o Botão Flutuante Inferior Direito ("Gerenciar aplicativo") */
             [data-testid="stManageAppButton"],
             .stManageAppButton,
             div[class*="stManageAppButton"],
@@ -41,28 +44,32 @@ hide_and_style_sidebar = """
                 visibility: hidden !important;
             }
             
-            /* 3. Estilização e Preservação Exclusiva do Botão de Abrir/Fechar Menu */
+            /* 3. Estilização e Preservação Forçada do Botão de Abrir/Fechar Menu */
             button[data-testid="stSidebarCollapseButton"] {
-                background-color: #1E1E2F !important;
-                color: #FF4B4B !important;           
-                border: 2px solid #FF4B4B !important; 
-                border-radius: 10px !important;       
-                width: 54px !important;               
-                height: 54px !important;              
-                box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.4) !important; 
                 display: flex !important;
+                visibility: visible !important;
+                background-color: #1E1E2F !important; /* Cor de fundo escura */
+                color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral) */
+                border: 2px solid #FF4B4B !important; /* Borda chamativa */
+                border-radius: 10px !important;       /* Cantos arredondados */
+                width: 54px !important;               /* Largura ideal para toque */
+                height: 54px !important;              /* Altura ideal para toque */
+                box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.4) !important; /* Brilho neon suave */
                 align-items: center !important;
                 justify-content: center !important;
                 transition: all 0.3s ease !important;
-                z-index: 999999 !important;          
+                z-index: 999999 !important;          /* Garante que fique acima de tudo */
                 position: relative !important;
             }
             
+            /* Garante o tamanho e a renderização do ícone dentro do botão */
             button[data-testid="stSidebarCollapseButton"] svg {
                 width: 30px !important;
                 height: 30px !important;
+                display: block !important;
             }
             
+            /* Efeito moderno ao passar o mouse */
             button[data-testid="stSidebarCollapseButton"]:hover {
                 background-color: #FF4B4B !important;
                 color: #FFFFFF !important;
