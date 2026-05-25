@@ -7,47 +7,62 @@ import json
 # Configuração da página (Sempre o primeiro comando do Streamlit)
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CSS PERSONALIZADO (Limpeza total do cabeçalho e destaque do botão de menu) ---
+# --- CSS PERSONALIZADO ULTRA LIMPO (Remove Fork, GitHub, Share e Gerenciar Aplicativo) ---
 hide_and_style_sidebar = """
             <style>
-            /* 1. Limpeza Completa de Elementos Nativos do Streamlit */
+            /* 1. Remoção Total de Elementos Cloud/Git/Menu no Cabeçalho */
             #MainMenu {visibility: hidden; display: none !important;}
             footer {visibility: hidden; display: none !important;}
             .stAppDeployButton {display: none !important;}
             [data-testid="stDecoration"] {display: none !important;}
-            button[data-testid="stHeaderActionButton"] {display: none !important;}
-            [data-testid="stHeaderActionElements"] {display: none !important;}
             
-            /* Deixa o cabeçalho transparente e sem interferência visual */
+            /* Remove botões de ação superiores (Share, Star, Edit, Fork, GitHub) */
+            [data-testid="stHeaderActionElements"], 
+            .stHeaderActionElements, 
+            button[data-testid="stHeaderActionButton"],
+            header a, 
+            header button:not([data-testid="stSidebarCollapseButton"]) {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* Deixa o cabeçalho completamente limpo e invisível */
             header {
                 background-color: transparent !important;
                 box-shadow: none !important;
             }
             
-            /* 2. Estilização do Botão de Abrir/Fechar Menu (Ultra Visível) */
+            /* 2. Remoção do Botão Flutuante Inferior Direito ("Gerenciar aplicativo") */
+            [data-testid="stManageAppButton"],
+            .stManageAppButton,
+            div[class*="stManageAppButton"],
+            div[data-testid="stManageAppButton"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+            
+            /* 3. Estilização e Preservação Exclusiva do Botão de Abrir/Fechar Menu */
             button[data-testid="stSidebarCollapseButton"] {
-                background-color: #1E1E2F !important; /* Cor de fundo escura */
-                color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral) */
-                border: 2px solid #FF4B4B !important; /* Borda chamativa */
-                border-radius: 10px !important;       /* Cantos arredondados */
-                width: 54px !important;               /* Largura ideal para toque */
-                height: 54px !important;              /* Altura ideal para toque */
-                box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.4) !important; /* Brilho neon suave */
+                background-color: #1E1E2F !important;
+                color: #FF4B4B !important;           
+                border: 2px solid #FF4B4B !important; 
+                border-radius: 10px !important;       
+                width: 54px !important;               
+                height: 54px !important;              
+                box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.4) !important; 
                 display: flex !important;
                 align-items: center !important;
                 justify-content: center !important;
                 transition: all 0.3s ease !important;
-                z-index: 999999 !important;          /* Garante que fique acima de tudo */
+                z-index: 999999 !important;          
                 position: relative !important;
             }
             
-            /* Aumenta o tamanho do ícone interno do botão */
             button[data-testid="stSidebarCollapseButton"] svg {
                 width: 30px !important;
                 height: 30px !important;
             }
             
-            /* Efeito de hover moderno (ao passar o mouse ou tocar) */
             button[data-testid="stSidebarCollapseButton"]:hover {
                 background-color: #FF4B4B !important;
                 color: #FFFFFF !important;
@@ -230,7 +245,7 @@ if st.session_state.eh_admin:
                     vencimento_calculado = (datetime.now() + timedelta(days=dias_validade)).strftime("%Y-%m-%d")
                     usuarios_cadastrados[novo_usuario] = {
                         "senha": nova_senha,
-                        "tipo": type_conta,
+                        "tipo": tipo_conta,
                         "vencimento": vencimento_calculado,
                         "status": "Ativo"
                     }
@@ -324,7 +339,7 @@ with st.sidebar:
                 
                 st.session_state.servicos[novo_servico] = novo_preco
                 salvar_servicos(st.session_state.servicos)
-                st.success("Serviço atualizado!")
+                st.success("Serviço updated!")
                 st.rerun()
             else:
                 st.error("O nome do serviço não pode ser vazio.")
