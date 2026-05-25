@@ -4,96 +4,23 @@ from datetime import datetime, timedelta
 import os
 import json
 
-# Configuração da página (Sempre o primeiro comando do Streamlit)
+# Configuração da página
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CSS PERSONALIZADO ULTRA LIMPO (Bloqueio Total de Elementos Cloud e Streamlit) ---
-hide_and_style_sidebar = """
-            <style>
-            /* 1. Remove a barra de decoração superior colorida */
-            [data-testid="stDecoration"] {
-                display: none !important;
-            }
-            
-            /* 2. Reduz o espaçamento excessivo no topo para o painel subir */
-            .main .block-container {
-                padding-top: 4rem !important;
-                padding-bottom: 1rem !important;
-            }
-            
-            /* 3. Limpa o cabeçalho original e desativa cliques residuais */
-            [data-testid="stHeader"], header {
-                background-color: transparent !important;
-                box-shadow: none !important;
-            }
-            
-            /* Oculta todos os botões do cabeçalho da Nuvem/Streamlit (Share, Fork, Star, GitHub, Deploy e 3 Pontos) */
-            [data-testid="stAppDeployButton"], 
-            #MainMenu, 
-            [data-testid="stHeaderActionElements"],
-            .stHeaderActionElements,
-            button[data-testid="stHeaderActionButton"],
-            .stAppToolbar,
-            div[class*="stAppToolbar"],
-            header button:not([data-testid="stSidebarCollapseButton"]),
-            header a {
-                display: none !important;
-                visibility: hidden !important;
-                width: 0 !important;
-                height: 0 !important;
-            }
-            
-            /* 4. Oculta TOTALMENTE o rodapé do Streamlit e o botão flutuante inferior 'Gerenciar aplicativo' (+) */
-            footer, [data-testid="stFooter"], .stFooter, 
-            [data-testid="stManageAppButton"], .stManageAppButton,
-            div[class*="stManageAppButton"], div[data-testid="stManageAppButton"],
-            button[data-testid="stManageAppButton"], iframe[title="manage-app"] {
-                display: none !important;
-                visibility: hidden !important;
-                height: 0 !important;
-                width: 0 !important;
-                opacity: 0 !important;
-            }
-            
-            /* 5. Garante que o botão de abrir/fechar o menu lateral fique perfeitamente fixado logo acima do título */
-            button[data-testid="stSidebarCollapseButton"] {
-                display: flex !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                pointer-events: auto !important; /* Reativa o clique perfeito no botão */
-                position: fixed !important;
-                top: 15px !important;            /* Alinhado acima da tesoura ✂️ */
-                left: 20px !important;
-                background-color: #1E1E2F !important; /* Cor de fundo escura */
-                color: #FF4B4B !important;           /* Cor das setinhas */
-                border: 2px solid #FF4B4B !important; /* Borda destacada */
-                border-radius: 10px !important;       /* Cantos arredondados */
-                box-shadow: 0px 4px 15px rgba(255, 75, 75, 0.4) !important; /* Brilho neon */
-                transition: all 0.3s ease !important;
-                z-index: 999999 !important;
-            }
-            
-            /* Mantém a cor correta das setas/ícone */
-            button[data-testid="stSidebarCollapseButton"] svg {
-                fill: #FF4B4B !important;
-                color: #FF4B4B !important;
-            }
-            
-            /* Efeito moderno ao passar o mouse */
-            button[data-testid="stSidebarCollapseButton"]:hover {
-                background-color: #FF4B4B !important;
-                color: #FFFFFF !important;
-                transform: scale(1.05);
-                cursor: pointer !important;
-            }
-            
-            button[data-testid="stSidebarCollapseButton"]:hover svg {
-                fill: #FFFFFF !important;
-                color: #FFFFFF !important;
-            }
-            </style>
-            """
-st.markdown(hide_and_style_sidebar, unsafe_allow_html=True)
+# --- INJEÇÃO DE CSS PARA REMOVER O FORK E CABEÇALHO SUPERIOR ---
+st.markdown(
+    """
+    <style>
+    header[data-testid="stHeader"] {
+        visibility: hidden;
+        height: 0px;
+    }
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 USUARIOS_FILE = "usuarios.json"
 
@@ -330,9 +257,8 @@ venc_f = datetime.strptime(dados_proprios['vencimento'], "%Y-%m-%d").strftime("%
 st.markdown(f"*Painel Exclusivo | Licença Tipo: **{dados_proprios['tipo']}** (Válida até {venc_f})*")
 st.markdown("---")
 
-# --- SIDEBAR: GERENCIAR SERVIÇOS ---
-with st.sidebar:
-    st.header("⚙️ Configurações de Serviços")
+# --- MENU DE CONFIGURAÇÕES MOVIDO PARA ABAIXO DO TEXTO DO PAINEL ---
+with st.expander("⚙️ Menu de Opções & Configurações de Serviços", expanded=False):
     st.markdown("Selecione um serviço para alterar ou escolha criar um novo.")
     
     opcoes_gerenciamento = ["➕ Cadastrar Novo Serviço"] + list(st.session_state.servicos.keys())
@@ -361,7 +287,7 @@ with st.sidebar:
                 
                 st.session_state.servicos[novo_servico] = novo_preco
                 salvar_servicos(st.session_state.servicos)
-                st.success("Serviço updated!")
+                st.success("Serviço atualizado!")
                 st.rerun()
             else:
                 st.error("O nome do serviço não pode ser vazio.")
@@ -387,15 +313,18 @@ with st.sidebar:
         st.session_state.eh_admin = False
         st.rerun()
 
+# Espaçamento para organizar o layout com o novo menu
+st.markdown("<br>", unsafe_allow_html=True)
+
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
 
-# --- TAB 2: LANÇAR MOVIMENTAÇÃO ---
+# --- TAB 2: LANÇAR MOVIMENTAÇÃO (LAYOUT ULTRA PROFISSIONAL E LIMPO) ---
 with tab2:
     st.markdown("### 🛠️ Central de Lançamentos")
     st.markdown("Clique nos quadros abaixo para abrir os formulários de registro.")
     
-    # QUADRO 1: ENTRADAS
+    # QUADRO 1: ENTRADAS (ATENDIMENTO PAGO)
     with st.expander("📥 REGISTRAR ENTRADA (Atendimento Concluído e Pago)", expanded=False):
         if list(st.session_state.servicos.keys()):
             servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
@@ -418,7 +347,7 @@ with tab2:
         else:
             st.info("Cadastre pelo menos um serviço na barra lateral para registrar entradas.")
 
-    # QUADRO 2: SAÍDAS
+    # QUADRO 2: SAÍDAS (DESPESAS)
     with st.expander("📤 REGISTRAR SAÍDA (Pagamento de Contas e Custos)", expanded=False):
         descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
         valor_saida = st.number_input("Valor da Despesa (R$):", min_value=0.0, step=5.0, key="saida_val")
@@ -439,7 +368,7 @@ with tab2:
             else:
                 st.error("Preencha a descrição e o valor da despesa.")
 
-    # QUADRO 3: PRODUTO FIADO
+    # QUADRO 3: PRODUTO FIADO (PENDÊNCIAS)
     with st.expander("⏳ REGISTRAR PENDÊNCIA (Corte / Serviço Fiado)", expanded=False):
         if list(st.session_state.servicos.keys()):
             nome_devedor = st.text_input("Nome do Cliente (Quem ficou devendo?):", key="input_nome_devedor").strip()
