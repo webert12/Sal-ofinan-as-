@@ -50,26 +50,62 @@ if 'fluxo_caixa' not in st.session_state:
 st.title("✂️ Barber & Hair - Gestão Financeira")
 st.markdown("---")
 
-# --- SIDEBAR: GERENCIAR SERVIÇOS ---
-st.sidebar.header("⚙️ Configurações de Serviços")
-st.sidebar.markdown("Altere os valores ou adicione novos serviços.")
-
-# Editar/Adicionar Serviço
-novo_servico = st.sidebar.text_input("Nome do Serviço:", key="input_nome_servico")
-novo_preco = st.sidebar.number_input("Preço (R$):", min_value=0.0, step=5.0, key="input_preco_servico")
-
-if st.sidebar.button("Salvar/Atualizar Serviço"):
-    if novo_servico:
-        st.session_state.servicos[novo_servico] = novo_preco
-        salvar_servicos(st.session_state.servicos)
-        st.sidebar.success(f"Serviço '{novo_servico}' salvo com sucesso por R$ {novo_preco:.2f}!")
+# --- SIDEBAR: GERENCIAR SERVIÇOS (CRIAÇÃO E EDIÇÃO) ---
+with st.sidebar:
+    st.header("⚙️ Configurações de Serviços")
+    st.markdown("Selecione um serviço para alterar ou escolha criar um novo.")
+    
+    # Menu para escolher se vai criar ou editar um existente
+    opcoes_gerenciamento = ["➕ Cadastrar Novo Serviço"] + list(st.session_state.servicos.keys())
+    servico_selecionado_gerenciar = st.selectbox("Escolha uma ação:", opcoes_gerenciamento, key="sb_gerenciar_servicos")
+    
+    # Define os valores iniciais dos campos baseado na escolha do usuário
+    if servico_selecionado_gerenciar == "➕ Cadastrar Novo Serviço":
+        nome_padrao = ""
+        preco_padrao = 0.0
+        botao_label = "Cadastrar Serviço"
     else:
-        st.sidebar.error("Digite o nome do serviço.")
+        nome_padrao = servico_selecionado_gerenciar
+        preco_padrao = float(st.session_state.servicos[servico_selecionado_gerenciar])
+        botao_label = "Salvar Alterações"
+        
+    # Uso de chaves dinâmicas para atualizar os campos instantaneamente ao mudar o selectbox
+    novo_servico = st.text_input("Nome do Serviço:", value=nome_padrao, key=f"input_nome_{servico_selecionado_gerenciar}")
+    novo_preco = st.number_input("Preço (R$):", min_value=0.0, value=preco_padrao, step=5.0, key=f"input_preco_{servico_selecionado_gerenciar}")
+    
+    # Botões de Ação lado a lado
+    col_btn1, col_btn2 = st.columns(2)
+    
+    with col_btn1:
+        if st.button(botao_label, type="primary", key=f"btn_salvar_{servico_selecionado_gerenciar}"):
+            if novo_servico:
+                # Se o usuário alterou o nome de um serviço existente, remove o nome antigo para não duplicar
+                if servico_selecionado_gerenciar != "➕ Cadastrar Novo Serviço" and servico_selecionado_gerenciar != novo_servico:
+                    if servico_selecionado_gerenciar in st.session_state.servicos:
+                        del st.session_state.servicos[servico_selecionado_gerenciar]
+                
+                # Salva os novos dados
+                st.session_state.servicos[novo_servico] = novo_preco
+                salvar_servicos(st.session_state.servicos)
+                st.success("Serviço atualizado com sucesso!")
+                st.rerun()
+            else:
+                st.error("O nome do serviço não pode ser vazio.")
+                
+    with col_btn2:
+        # Só exibe o botão excluir se for um serviço já existente
+        if servico_selecionado_gerenciar != "➕ Cadastrar Novo Serviço":
+            if st.button("🗑️ Excluir", key=f"btn_deletar_{servico_selecionado_gerenciar}"):
+                if servico_selecionado_gerenciar in st.session_state.servicos:
+                    del st.session_state.servicos[servico_selecionado_gerenciar]
+                salvar_servicos(st.session_state.servicos)
+                st.warning("Serviço excluído!")
+                st.rerun()
 
-# Listar serviços antigos/novos cadastrados
-st.sidebar.markdown("### Serviços Cadastrados")
-for serv, preco in st.session_state.servicos.items():
-    st.sidebar.text(f"• {serv}: R$ {preco:.2f}")
+    st.markdown("---")
+    st.markdown("### Lista de Valores Atuais")
+    for serv, preco in st.session_state.servicos.items():
+        st.text(f"• {serv}: R$ {preco:.2f}")
 
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
@@ -80,22 +116,26 @@ with tab2:
     
     with col1:
         st.subheader("📥 Entrada (Atendimento ao Cliente)")
-        servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
-        preco_sugerido = st.session_state.servicos[servico_selecionado]
-        
-        preco_final = st.number_input("Valor Cobrado (R$):", value=preco_sugerido, step=1.0, key=f"entrada_val_{servico_selecionado}")
-        data_entrada = st.date_input("Data do Atendimento:", datetime.now().date(), key="entrada_data")
-        
-        if st.button("Registrar Entrada"):
-            nova_linha = pd.DataFrame([{
-                "Data": pd.to_datetime(data_entrada),
-                "Tipo": "Entrada",
-                "Descrição": f"Atendimento: {servico_selecionado}",
-                "Valor": preco_final
-            }])
-            st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
-            salvar_fluxo(st.session_state.fluxo_caixa) 
-            st.success("Entrada registrada com sucesso!")
+        if list(st.session_state.servicos.keys()):
+            servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
+            preco_sugerido = st.session_state.servicos[servico_selecionado]
+            
+            preco_final = st.number_input("Valor Cobrado (R$):", value=preco_sugerido, step=1.0, key=f"entrada_val_{servico_selecionado}")
+            data_entrada = st.date_input("Data do Atendimento:", datetime.now().date(), key="entrada_data")
+            
+            if st.button("Registrar Entrada"):
+                nova_linha = pd.DataFrame([{
+                    "Data": pd.to_datetime(data_entrada),
+                    "Tipo": "Entrada",
+                    "Descrição": f"Atendimento: {servico_selecionado}",
+                    "Valor": preco_final
+                }])
+                st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
+                salvar_fluxo(st.session_state.fluxo_caixa) 
+                st.success("Entrada registrada com sucesso!")
+                st.rerun()
+        else:
+            st.info("Cadastre pelo menos um serviço na barra lateral para registrar entradas.")
 
     with col2:
         st.subheader("📤 Saída (Pagamento de Despesas)")
@@ -114,6 +154,7 @@ with tab2:
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True)
                 salvar_fluxo(st.session_state.fluxo_caixa) 
                 st.success("Despesa registrada com sucesso!")
+                st.rerun()
             else:
                 st.error("Preencha a descrição e o valor da despesa.")
 
@@ -153,11 +194,11 @@ with tab1:
     
     m1, m2, m3 = st.columns(3)
     with m1:
-        st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"Entradas: R$ {ent_dia:.2f}")
+        st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"+ R$ {ent_dia:.2f} Entradas")
     with m2:
-        st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"Entradas: R$ {ent_sem:.2f}")
+        st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"+ R$ {ent_sem:.2f} Entradas")
     with m3:
-        st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"Entradas: R$ {ent_mes:.2f}")
+        st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"+ R$ {ent_mes:.2f} Entradas")
         
     st.markdown("---")
     st.subheader("📈 Resumo de Entradas vs Saídas (Mês Atual)")
@@ -179,7 +220,6 @@ with tab3:
         meses_puros = df_filtro['Mês/Ano'].dropna().unique()
         meses_disponiveis = sorted([str(m) for m in meses_puros if str(m).strip() and str(m) != 'nan'], reverse=True)
         
-        # CORRIGIDO: Nome da variável agora está idêntico nas duas linhas
         opcoes_filtro = ["Ver Tudo"] + meses_disponiveis
         mes_escolhido = st.selectbox("📅 Selecione o mês que deseja consultar:", opcoes_filtro, key="selectbox_filtro_mes_historico")
         
@@ -189,9 +229,24 @@ with tab3:
             df_exibicao = df_filtro.copy()
             
         if not df_exibicao.empty:
-            df_exibicao['Data'] = df_exibicao['Data'].dt.strftime('%d/%m/%Y')
-            df_exibicao = df_exibicao.drop(columns=['Mês/Ano'])
-            st.dataframe(df_exibicao.sort_index(ascending=False), use_container_width=True)
+            # Ordena os lançamentos mais recentes primeiro
+            df_exibicao = df_exibicao.sort_index(ascending=False)
+            
+            # Formata a data de visualização
+            df_visualizacao = df_exibicao.copy()
+            df_visualizacao['Data'] = df_visualizacao['Data'].dt.strftime('%d/%m/%Y')
+            df_visualizacao = df_visualizacao.drop(columns=['Mês/Ano'])
+            
+            # FUNÇÃO DE ESTILIZAÇÃO: Define cores de fundo para as linhas (verde para entrada, vermelho para saída)
+            def colorir_linhas(row):
+                if row['Tipo'] == 'Entrada':
+                    return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
+                elif row['Tipo'] == 'Saída':
+                    return ['background-color: #f8d7da; color: #721c24; font-weight: bold'] * len(row)
+                return [''] * len(row)
+            
+            # Renderiza a tabela aplicando o estilo CSS dinâmico
+            st.dataframe(df_visualizacao.style.apply(colorir_linhas, axis=1), use_container_width=True)
         else:
             st.info("Nenhum registro encontrado para este mês.")
     else:
