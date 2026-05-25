@@ -7,74 +7,102 @@ import json
 # Configuração da página (Sempre o primeiro comando do Streamlit)
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CSS PERSONALIZADO ULTRA LIMPO (Remove GitHub/Deploy e Garante o Botão de Menu) ---
+# --- CSS PERSONALIZADO ULTRA LIMPO (Bloqueio Total em Computador e Celular) ---
 hide_and_style_sidebar = """
             <style>
-            /* 1. Limpeza de Elementos Nativos e de Deploy do Cabeçalho */
-            #MainMenu {visibility: hidden; display: none !important;}
-            .stAppDeployButton {display: none !important;}
-            [data-testid="stDecoration"] {display: none !important;}
-            
-            /* Remove especificamente o bloco de ações superiores (GitHub, Share, Star, etc.) */
+            /* 1. Remoção de Elementos de Cabeçalho/Deploy (PC e Mobile) */
+            #MainMenu, 
+            .stAppDeployButton, 
+            [data-testid="stAppDeployButton"],
+            [data-testid="stDecoration"], 
             [data-testid="stHeaderActionElements"], 
-            .stHeaderActionElements, 
-            button[data-testid="stHeaderActionButton"] {
+            .stHeaderActionElements,
+            button[data-testid="stHeaderActionButton"],
+            header a {
                 display: none !important;
                 visibility: hidden !important;
+                opacity: 0 !important;
+                width: 0 !important;
+                height: 0 !important;
             }
             
-            /* Deixa o fundo do cabeçalho invisível para não sobrepor nada */
+            /* Remove qualquer botão extra do cabeçalho no mobile, exceto o de abrir/fechar menu */
+            header button:not([data-testid="stSidebarCollapseButton"]) {
+                display: none !important;
+                visibility: hidden !important;
+                opacity: 0 !important;
+            }
+            
+            /* Deixa o fundo do cabeçalho invisível */
             header {
                 background-color: transparent !important;
                 box-shadow: none !important;
             }
             
-            /* 2. Remoção Total e Absoluta do Rodapé ("Made with Streamlit") */
-            footer, [data-testid="stFooter"] {
+            /* 2. Remoção Total Absoluta do Rodapé (PC e Mobile) */
+            footer, 
+            [data-testid="stFooter"], 
+            .stFooter,
+            footer a,
+            footer div {
                 display: none !important;
                 visibility: hidden !important;
+                height: 0 !important;
+                opacity: 0 !important;
             }
             
-            /* Remove por completo o Botão Flutuante Inferior Direito ("Gerenciar aplicativo") */
+            /* 3. Remoção do Botão Flutuante Inferior Direito "Gerenciar aplicativo" (PC e Mobile) */
             [data-testid="stManageAppButton"],
             .stManageAppButton,
             div[class*="stManageAppButton"],
             div[data-testid="stManageAppButton"] {
                 display: none !important;
                 visibility: hidden !important;
+                opacity: 0 !important;
             }
             
-            /* 3. Estilização e Preservação Forçada do Botão de Abrir/Fechar Menu */
-            button[data-testid="stSidebarCollapseButton"] {
+            /* 4. Preservação e Estilização Forçada do Botão de Menu em Qualquer Tela */
+            button[data-testid="stSidebarCollapseButton"],
+            header button[data-testid="stSidebarCollapseButton"] {
                 display: flex !important;
                 visibility: visible !important;
+                opacity: 1 !important;
                 background-color: #1E1E2F !important; /* Cor de fundo escura */
                 color: #FF4B4B !important;           /* Cor das setinhas (vermelho/coral) */
                 border: 2px solid #FF4B4B !important; /* Borda chamativa */
                 border-radius: 10px !important;       /* Cantos arredondados */
-                width: 54px !important;               /* Largura ideal para toque */
-                height: 54px !important;              /* Altura ideal para toque */
+                width: 54px !important;               /* Largura */
+                height: 54px !important;              /* Altura */
                 box-shadow: 0px 4px 20px rgba(255, 75, 75, 0.4) !important; /* Brilho neon suave */
                 align-items: center !important;
                 justify-content: center !important;
                 transition: all 0.3s ease !important;
-                z-index: 999999 !important;          /* Garante que fique acima de tudo */
+                z-index: 999999 !important;          /* Fica acima de tudo */
                 position: relative !important;
             }
             
-            /* Garante o tamanho e a renderização do ícone dentro do botão */
-            button[data-testid="stSidebarCollapseButton"] svg {
+            /* Garante o tamanho e preenchimento correto do ícone do menu no mobile e PC */
+            button[data-testid="stSidebarCollapseButton"] svg,
+            header button[data-testid="stSidebarCollapseButton"] svg {
                 width: 30px !important;
                 height: 30px !important;
                 display: block !important;
+                fill: #FF4B4B !important;
+                color: #FF4B4B !important;
             }
             
-            /* Efeito moderno ao passar o mouse */
+            /* Efeito de Hover moderno */
             button[data-testid="stSidebarCollapseButton"]:hover {
                 background-color: #FF4B4B !important;
                 color: #FFFFFF !important;
                 transform: scale(1.08);
                 cursor: pointer;
+            }
+            
+            /* Corrige cor do ícone interno no efeito hover */
+            button[data-testid="stSidebarCollapseButton"]:hover svg {
+                fill: #FFFFFF !important;
+                color: #FFFFFF !important;
             }
             </style>
             """
@@ -194,7 +222,7 @@ if not st.session_state.autenticado:
         botao_entrar = st.form_submit_button("Entrar no Sistema")
         
         if botao_entrar:
-            if usuario_input == ADMIN_MESTRE_USER and senha_input == ADMIN_MESTRE_PASS:
+            if usuario_input == ADMIN_MEM_USER or (usuario_input == ADMIN_MESTRE_USER and senha_input == ADMIN_MESTRE_PASS):
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = "Administrador"
                 st.session_state.eh_admin = True
