@@ -23,8 +23,8 @@ st.markdown(
 )
 
 USUARIOS_FILE = "usuarios.json"
-# URL direta hospedada para máxima consistência de carregamento
-BANNER_IMAGE_URL = "https://raw.githubusercontent.com/cassioalmeidads/sal-ofinan-as-/main/423137.png"
+# URL direta hospedada para buscar a foto logo1.png direto do seu GitHub
+BANNER_IMAGE_URL = "https://raw.githubusercontent.com/cassioalmeidads/sal-ofinan-as-/main/logo1.png"
 
 # --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
 ADMIN_MESTRE_USER = "admin"
@@ -139,7 +139,7 @@ if 'autenticado' not in st.session_state:
 
 # --- TELA DE LOGIN ---
 if not st.session_state.autenticado:
-    # Exibe a imagem padrão oficial no topo da tela de login utilizando o link direto
+    # Exibe a imagem padrão oficial no topo da tela de login utilizando o link direto do GitHub
     st.image(BANNER_IMAGE_URL, use_container_width=True)
     st.markdown("---")
     
@@ -269,7 +269,7 @@ if st.session_state.eh_admin:
 # --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
-# Adiciona o banner padrão oficial do LucroNaRégua no topo usando o link de imagem direta
+# Adiciona o banner padrão oficial do LucroNaRégua no topo buscando direto o logo1.png do seu GitHub
 st.image(BANNER_IMAGE_URL, use_container_width=True)
 
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
