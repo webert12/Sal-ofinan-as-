@@ -126,11 +126,10 @@ usuarios_cadastrados = carregar_usuarios()
 
 # --- TELA DE LOGIN ---
 if not st.session_state.autenticado:
-    # Adiciona o banner do sistema na tela de Login para dar visibilidade
+    # Exibe exclusivamente a imagem padrão no topo da tela de login
     if os.path.exists("423137.png"):
         st.image("423137.png", use_container_width=True)
         
-    st.title("📈 LucroNaRégua - Login")
     st.markdown("---")
     
     with st.form("form_login"):
