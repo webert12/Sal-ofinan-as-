@@ -23,8 +23,23 @@ st.markdown(
 )
 
 USUARIOS_FILE = "usuarios.json"
-# URL direta hospedada para buscar a foto logo1.png direto do seu GitHub
-BANNER_IMAGE_URL = "https://raw.githubusercontent.com/cassioalmeidads/sal-ofinan-as-/main/logo1.png"
+
+# --- DEFINIÇÃO DA IMAGEM ---
+# Procuramos primeiro localmente no diretório pelo arquivo "logo1.png" para garantir carregamento instantâneo.
+# Se não achar local, ele tenta o link direto do Git como contingência.
+LOCAL_IMAGE_PATH = "logo1.png"
+GITHUB_IMAGE_URL = "https://raw.githubusercontent.com/cassioalmeidads/sal-ofinan-as-/main/logo1.png"
+
+def exibir_logo():
+    if os.path.exists(LOCAL_IMAGE_PATH):
+        st.image(LOCAL_IMAGE_PATH, use_container_width=True)
+    else:
+        # Se não achar local, tenta o link direto e trata o erro caso o Git esteja fora do ar
+        try:
+            st.image(GITHUB_IMAGE_URL, use_container_width=True)
+        except Exception:
+            # Evita que o sistema quebre caso ocorra um problema de conexão com a imagem externa
+            st.warning("⚠️ Carregando componentes do sistema LucroNaRégua...")
 
 # --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
 ADMIN_MESTRE_USER = "admin"
@@ -139,8 +154,8 @@ if 'autenticado' not in st.session_state:
 
 # --- TELA DE LOGIN ---
 if not st.session_state.autenticado:
-    # Exibe a imagem padrão oficial no topo da tela de login utilizando o link direto do GitHub
-    st.image(BANNER_IMAGE_URL, use_container_width=True)
+    # Exibe a imagem padrão oficial no topo da tela de login de maneira segura
+    exibir_logo()
     st.markdown("---")
     
     with st.form("form_login"):
@@ -269,8 +284,8 @@ if st.session_state.eh_admin:
 # --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
-# Adiciona o banner padrão oficial do LucroNaRégua no topo buscando direto o logo1.png do seu GitHub
-st.image(BANNER_IMAGE_URL, use_container_width=True)
+# Adiciona o banner padrão oficial do LucroNaRégua no topo buscando de forma segura
+exibir_logo()
 
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
 st.title(f"📈 {nome_salao_formatado} - LucroNaRégua")
