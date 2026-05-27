@@ -528,5 +528,3 @@ with tab3:
             st.info("Nenhum registro encontrado para este mês.")
     else:
         st.info("Nenhuma movimentação registrada até o momento.")
-
-```
