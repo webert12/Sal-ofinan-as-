@@ -23,21 +23,22 @@ st.markdown(
 )
 
 USUARIOS_FILE = "usuarios.json"
+# URL direta hospedada para máxima consistência de carregamento
+BANNER_IMAGE_URL = "https://raw.githubusercontent.com/cassioalmeidads/sal-ofinan-as-/main/423137.png"
 
 # --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
 ADMIN_MESTRE_USER = "admin"
 ADMIN_MESTRE_PASS = "master2026"
 
-# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (COM TRATAMENTO DE VALIDADE) ---
+# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS ---
 def carregar_usuarios():
-    hoje_str = datetime.now().strftime("%Y-%m-%d")
     vencimento_padrao = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
     
     if os.path.exists(USUARIOS_FILE):
         with open(USUARIOS_FILE, "r") as f:
             dados = json.load(f)
             
-        # Migração automática caso o arquivo antigo esteja no formato antigo (string simples)
+        # Migração automática caso o arquivo antigo esteja no formato antigo
         usuarios_atualizados = {}
         modificado = False
         for k, v in dados.items():
@@ -55,7 +56,7 @@ def carregar_usuarios():
             salvar_usuarios(usuarios_atualizados)
         return usuarios_atualizados
 
-    # Dados iniciais caso não exista o arquivo
+    # Dados iniciais
     usuarios_padrao = {
         "salao_central": {
             "senha": "admin123",
@@ -114,22 +115,32 @@ def salvar_fluxo(df):
     _, fluxo_file = obter_nomes_arquivos()
     df.to_csv(fluxo_file, index=False)
 
-# --- CONTROLE DE SESSÃO E LOGIN ---
-if 'autenticado' not in st.session_state:
-    st.session_state.autenticado = False
-if 'usuario_logado' not in st.session_state:
-    st.session_state.usuario_logado = None
-if 'eh_admin' not in st.session_state:
-    st.session_state.eh_admin = False
-
+# --- CONTROLE PERSISTENTE DE SESSÃO E LOGIN ---
 usuarios_cadastrados = carregar_usuarios()
+
+# Recupera o estado persistente do usuário dos parâmetros da URL para evitar deslogar no F5
+if 'autenticado' not in st.session_state:
+    if "user" in st.query_params and "auth" in st.query_params and st.query_params["auth"] == "true":
+        user_param = st.query_params["user"]
+        if user_param == "administrador":
+            st.session_state.autenticado = True
+            st.session_state.usuario_logado = "Administrador"
+            st.session_state.eh_admin = True
+        elif user_param in usuarios_cadastrados:
+            st.session_state.autenticado = True
+            st.session_state.usuario_logado = user_param
+            st.session_state.eh_admin = False
+            st.session_state.servicos = carregar_servicos()
+            st.session_state.fluxo_caixa = carregar_fluxo()
+    else:
+        st.session_state.autenticado = False
+        st.session_state.usuario_logado = None
+        st.session_state.eh_admin = False
 
 # --- TELA DE LOGIN ---
 if not st.session_state.autenticado:
-    # Exibe exclusivamente a imagem padrão no topo da tela de login
-    if os.path.exists("423137.png"):
-        st.image("423137.png", use_container_width=True)
-        
+    # Exibe a imagem padrão oficial no topo da tela de login utilizando o link direto
+    st.image(BANNER_IMAGE_URL, use_container_width=True)
     st.markdown("---")
     
     with st.form("form_login"):
@@ -143,6 +154,9 @@ if not st.session_state.autenticado:
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = "Administrador"
                 st.session_state.eh_admin = True
+                # Persiste nos parâmetros da query para manter conectado
+                st.query_params["auth"] = "true"
+                st.query_params["user"] = "administrador"
                 st.success("Acesso master concedido!")
                 st.rerun()
             elif usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input]["senha"] == senha_input:
@@ -161,6 +175,9 @@ if not st.session_state.autenticado:
                 st.session_state.eh_admin = False
                 st.session_state.servicos = carregar_servicos()
                 st.session_state.fluxo_caixa = carregar_fluxo()
+                # Persiste nos parâmetros da query para manter conectado
+                st.query_params["auth"] = "true"
+                st.query_params["user"] = usuario_input
                 st.success(f"Carregando painel de {usuario_input}...")
                 st.rerun()
             else:
@@ -243,6 +260,7 @@ if st.session_state.eh_admin:
             st.session_state.autenticado = False
             st.session_state.usuario_logado = None
             st.session_state.eh_admin = False
+            st.query_params.clear()
             st.rerun()
     st.stop()
 
@@ -251,9 +269,8 @@ if st.session_state.eh_admin:
 # --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
-# Adiciona o banner oficial do LucroNaRégua no topo do painel do cliente
-if os.path.exists("423137.png"):
-    st.image("423137.png", use_container_width=True)
+# Adiciona o banner padrão oficial do LucroNaRégua no topo usando o link de imagem direta
+st.image(BANNER_IMAGE_URL, use_container_width=True)
 
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
 st.title(f"📈 {nome_salao_formatado} - LucroNaRégua")
@@ -318,6 +335,7 @@ with st.expander("⚙️ Menu de Opções & Configurações de Serviços", expan
         st.session_state.autenticado = False
         st.session_state.usuario_logado = None
         st.session_state.eh_admin = False
+        st.query_params.clear()
         st.rerun()
 
 # Espaçamento para organizar o layout com o novo menu
