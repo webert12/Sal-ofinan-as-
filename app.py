@@ -41,6 +41,17 @@ def exibir_logo():
             # Evita que o sistema quebre caso ocorra um problema de conexão com a imagem externa
             st.warning("⚠️ Carregando componentes do sistema LucroNaRégua...")
 
+# --- FUNÇÃO DO RESUMO FINANCEIRO (EXPANDER RETRÁTIL) ---
+def exibir_resumo_financeiro(lucro_dia, ent_dia, lucro_sem, ent_sem, lucro_mes, ent_mes):
+    with st.expander("📊 Resumo Financeiro", expanded=True):
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"+ R$ {ent_dia:.2f} Entradas")
+        with m2:
+            st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"+ R$ {ent_sem:.2f} Entradas")
+        with m3:
+            st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"+ R$ {ent_mes:.2f} Entradas")
+
 # --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
 ADMIN_MESTRE_USER = "admin"
 ADMIN_MESTRE_PASS = "master2026"
@@ -287,16 +298,7 @@ if st.session_state.eh_admin:
 # Adiciona o banner padrão oficial do LucroNaRégua no topo buscando de forma segura
 exibir_logo()
 
-nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
-st.title(f"📈 {nome_salao_formatado} - LucroNaRégua")
-
-# Mostrar detalhes da licença do próprio usuário logado de maneira sutil
-dados_proprios = usuarios_cadastrados[st.session_state.usuario_logado]
-venc_f = datetime.strptime(dados_proprios['vencimento'], "%Y-%m-%d").strftime("%d/%m/%Y")
-st.markdown(f"*Painel Exclusivo | Licença Tipo: **{dados_proprios['tipo']}** (Válida até {venc_f})*")
-st.markdown("---")
-
-# --- MENU DE CONFIGURAÇÕES MOVIDO PARA ABAIXO DO TEXTO DO PAINEL ---
+# --- MENU DE CONFIGURAÇÕES MOVIDO PARA ABAIXO DA LOGO ---
 with st.expander("⚙️ Menu de Opções & Configurações de Serviços", expanded=False):
     st.markdown("Selecione um serviço para alterar ou escolha criar um novo.")
     
@@ -496,15 +498,8 @@ else:
 
 # --- TAB 1: DASHBOARD ---
 with tab1:
-    st.subheader("📊 Resumo Financeiro Real-Time")
-    
-    m1, m2, m3 = st.columns(3)
-    with m1:
-        st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"+ R$ {ent_dia:.2f} Entradas")
-    with m2:
-        st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"+ R$ {ent_sem:.2f} Entradas")
-    with m3:
-        st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"+ R$ {ent_mes:.2f} Entradas")
+    # Chamando a nova função que engloba as métricas diária, semanal e mensal dentro do expander
+    exibir_resumo_financeiro(lucro_dia, ent_dia, lucro_sem, ent_sem, lucro_mes, ent_mes)
         
     st.markdown("---")
     st.subheader("📈 Resumo de Entradas vs Saídas (Mês Atual)")
