@@ -1,11 +1,12 @@
+```python
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import os
 import json
 
-# Configuração da página
-st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
+# Configuração da página - Atualizado para o novo nome LucroNaRégua
+st.set_page_config(page_title="LucroNaRégua - Régua Financeira", layout="wide", page_icon="📈")
 
 # --- INJEÇÃO DE CSS PARA REMOVER O FORK E CABEÇALHO SUPERIOR ---
 st.markdown(
@@ -126,7 +127,11 @@ usuarios_cadastrados = carregar_usuarios()
 
 # --- TELA DE LOGIN ---
 if not st.session_state.autenticado:
-    st.title("✂️ Sistema de Gestão - Login")
+    # Adiciona o banner do sistema na tela de Login para dar visibilidade
+    if os.path.exists("423137.png"):
+        st.image("423137.png", use_container_width=True)
+        
+    st.title("📈 LucroNaRégua - Login")
     st.markdown("---")
     
     with st.form("form_login"):
@@ -248,8 +253,12 @@ if st.session_state.eh_admin:
 # --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
+# Adiciona o banner oficial do LucroNaRégua no topo do painel do cliente
+if os.path.exists("423137.png"):
+    st.image("423137.png", use_container_width=True)
+
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
-st.title(f"✂️ {nome_salao_formatado} - Gestão Financeira")
+st.title(f"📈 {nome_salao_formatado} - LucroNaRégua")
 
 # Mostrar detalhes da licença do próprio usuário logado de maneira sutil
 dados_proprios = usuarios_cadastrados[st.session_state.usuario_logado]
@@ -520,3 +529,5 @@ with tab3:
             st.info("Nenhum registro encontrado para este mês.")
     else:
         st.info("Nenhuma movimentação registrada até o momento.")
+
+```
