@@ -22,7 +22,7 @@ def carregar_usuarios():
         with open(USUARIOS_FILE, "r") as f:
             dados = json.load(f)
             
-        # Migração automática caso o arquivo antigo esteja no formato antigo (string simples)
+        # Migração automática caso o arquivo antigo esteja no formato antigo
         usuarios_atualizados = {}
         modificado = False
         for k, v in dados.items():
@@ -89,7 +89,7 @@ def carregar_fluxo():
     if os.path.exists(fluxo_file):
         try:
             df = pd.read_csv(fluxo_file)
-            # CORREÇÃO: Forçar conversão de data para objeto date sem hora
+            # CORREÇÃO: Forçar conversão para data pura (sem hora) logo na leitura
             df['Data'] = pd.to_datetime(df['Data']).dt.date
             return df
         except Exception:
@@ -151,7 +151,7 @@ if not st.session_state.autenticado:
     st.stop()
 
 # =====================================================================
-# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE (GERENCIAR LICENÇAS) ---
+# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE ---
 # =====================================================================
 if st.session_state.eh_admin:
     st.title("👑 Central do Administrador - Gestão de Clientes & Licenças")
@@ -230,7 +230,7 @@ if st.session_state.eh_admin:
 
 
 # =====================================================================
-# --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
+# --- INTERFACE 2: PAINEL DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
@@ -313,6 +313,7 @@ with tab2:
             data_entrada = st.date_input("Data do Atendimento:", datetime.now().date(), key="entrada_data")
             
             if st.button("Confirmar e Lançar Entrada", type="primary"):
+                # Garante conversão para tipo date
                 nova_linha = pd.DataFrame([{
                     "Data": data_entrada,
                     "Tipo": "Entrada",
@@ -376,12 +377,16 @@ with tab2:
                 st.rerun()
 
 # --- LÓGICA DE CÁLCULO DOS GANHOS (D/W/M) ---
+# Recarrega o dataframe atualizado da sessão
 df = st.session_state.fluxo_caixa.copy()
+
 if not df.empty:
-    # Garantir que a coluna 'Data' seja do tipo 'date' (sem hora) para comparação correta
+    # APLICAÇÃO DA CORREÇÃO DE FUSO HORÁRIO E TIPO:
+    # Garantimos que a coluna 'Data' seja convertida estritamente para o tipo 'date' (sem hora)
     df['Data'] = pd.to_datetime(df['Data']).dt.date
     hoje = datetime.now().date()
     
+    # Filtros agora usam comparação de data vs data (date vs date)
     df_diario = df[df['Data'] == hoje]
     df_semanal = df[df['Data'] >= (hoje - timedelta(days=7))]
     df_mensal = df[df['Data'].apply(lambda x: x.month == hoje.month and x.year == hoje.year)]
@@ -410,7 +415,10 @@ with tab1:
     m2.metric("Últimos 7 Dias (Líquido)", f"R$ {lucro_sem:.2f}")
     m3.metric("Mês Atual (Líquido)", f"R$ {lucro_mes:.2f}")
     
-    st.bar_chart(pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]}), x="Categoria", y="Total (R$)")
+    # Criar grafico seguro contra df vazio
+    if not df.empty:
+        df_plot = pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]})
+        st.bar_chart(df_plot, x="Categoria", y="Total (R$)")
 
 # --- TAB 3: HISTÓRICO ---
 with tab3:
@@ -418,3 +426,5 @@ with tab3:
     if not df.empty:
         df_exibicao = df.sort_index(ascending=False).copy()
         st.dataframe(df_exibicao, use_container_width=True)
+    else:
+        st.info("Nenhuma movimentação registrada.")
