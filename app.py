@@ -89,7 +89,8 @@ def carregar_fluxo():
     if os.path.exists(fluxo_file):
         try:
             df = pd.read_csv(fluxo_file)
-            df['Data'] = pd.to_datetime(df['Data'])
+            # CORREÇÃO: Forçar conversão de data para objeto date sem hora
+            df['Data'] = pd.to_datetime(df['Data']).dt.date
             return df
         except Exception:
             return pd.DataFrame(columns=["Data", "Tipo", "Descrição", "Valor"])
@@ -190,7 +191,6 @@ if st.session_state.eh_admin:
     with col_lista:
         st.subheader("👥 Salões Cadastrados e Status de Licença")
         
-        # Montar um DataFrame amigável para exibição das licenças
         lista_formatada = []
         for user, info in usuarios_cadastrados.items():
             dt_venc = datetime.strptime(info['vencimento'], "%Y-%m-%d").date()
@@ -236,7 +236,6 @@ if st.session_state.eh_admin:
 nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
 st.title(f"✂️ {nome_salao_formatado} - Gestão Financeira")
 
-# Mostrar detalhes da licença do próprio usuário logado de maneira sutil
 dados_proprios = usuarios_cadastrados[st.session_state.usuario_logado]
 venc_f = datetime.strptime(dados_proprios['vencimento'], "%Y-%m-%d").strftime("%d/%m/%Y")
 st.markdown(f"*Painel Exclusivo | Licença Tipo: **{dados_proprios['tipo']}** (Válida até {venc_f})*")
@@ -302,23 +301,20 @@ with st.sidebar:
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
 
-# --- TAB 2: LANÇAR MOVIMENTAÇÃO (LAYOUT ULTRA PROFISSIONAL E LIMPO) ---
+# --- TAB 2: LANÇAR MOVIMENTAÇÃO ---
 with tab2:
     st.markdown("### 🛠️ Central de Lançamentos")
-    st.markdown("Clique nos quadros abaixo para abrir os formulários de registro.")
     
-    # QUADRO 1: ENTRADAS (ATENDIMENTO PAGO)
     with st.expander("📥 REGISTRAR ENTRADA (Atendimento Concluído e Pago)", expanded=False):
         if list(st.session_state.servicos.keys()):
             servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento")
             preco_sugerido = st.session_state.servicos[servico_selecionado]
-            
             preco_final = st.number_input("Valor Cobrado (R$):", value=preco_sugerido, step=1.0, key=f"entrada_val_{servico_selecionado}")
             data_entrada = st.date_input("Data do Atendimento:", datetime.now().date(), key="entrada_data")
             
             if st.button("Confirmar e Lançar Entrada", type="primary"):
                 nova_linha = pd.DataFrame([{
-                    "Data": pd.to_datetime(data_entrada),
+                    "Data": data_entrada,
                     "Tipo": "Entrada",
                     "Descrição": f"Atendimento: {servico_selecionado}",
                     "Valor": preco_final
@@ -327,10 +323,7 @@ with tab2:
                 salvar_fluxo(st.session_state.fluxo_caixa) 
                 st.success("Entrada financeira registrada!")
                 st.rerun()
-        else:
-            st.info("Cadastre pelo menos um serviço na barra lateral para registrar entradas.")
 
-    # QUADRO 2: SAÍDAS (DESPESAS)
     with st.expander("📤 REGISTRAR SAÍDA (Pagamento de Contas e Custos)", expanded=False):
         descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
         valor_saida = st.number_input("Valor da Despesa (R$):", min_value=0.0, step=5.0, key="saida_val")
@@ -339,7 +332,7 @@ with tab2:
         if st.button("Confirmar e Lançar Saída", type="primary"):
             if descricao_saida and valor_saida > 0:
                 nova_linha = pd.DataFrame([{
-                    "Data": pd.to_datetime(data_saida),
+                    "Data": data_saida,
                     "Tipo": "Saída",
                     "Descrição": descricao_saida,
                     "Valor": -valor_saida  
@@ -348,23 +341,18 @@ with tab2:
                 salvar_fluxo(st.session_state.fluxo_caixa) 
                 st.success("Despesa lançada com sucesso!")
                 st.rerun()
-            else:
-                st.error("Preencha a descrição e o valor da despesa.")
 
-    # QUADRO 3: PRODUTO FIADO (PENDÊNCIAS)
     with st.expander("⏳ REGISTRAR PENDÊNCIA (Corte / Serviço Fiado)", expanded=False):
         if list(st.session_state.servicos.keys()):
             nome_devedor = st.text_input("Nome do Cliente (Quem ficou devendo?):", key="input_nome_devedor").strip()
             servico_pendente = st.selectbox("Selecione o Serviço feito:", list(st.session_state.servicos.keys()), key="selectbox_servico_pendencia")
-            preco_sugerido_p = st.session_state.servicos[servico_pendente]
-            
-            preco_final_p = st.number_input("Valor Pendente (R$):", value=preco_sugerido_p, step=1.0, key=f"pendencia_val_{servico_pendente}")
+            preco_final_p = st.number_input("Valor Pendente (R$):", value=st.session_state.servicos[servico_pendente], step=1.0, key=f"pendencia_val_{servico_pendente}")
             data_pendencia = st.date_input("Data da Realização:", datetime.now().date(), key="pendencia_data")
             
             if st.button("Salvar Registro de Fiado", type="primary"):
                 if nome_devedor:
                     nova_linha = pd.DataFrame([{
-                        "Data": pd.to_datetime(data_pendencia),
+                        "Data": data_pendencia,
                         "Tipo": "Pendência",
                         "Descrição": f"Fiado de: {nome_devedor} ({servico_pendente})",
                         "Valor": preco_final_p
@@ -373,53 +361,30 @@ with tab2:
                     salvar_fluxo(st.session_state.fluxo_caixa) 
                     st.success(f"Pendência de {nome_devedor} anotada.")
                     st.rerun()
-                else:
-                    st.error("Por favor, preencha o nome do cliente.")
-        else:
-            st.info("Cadastre pelo menos um serviço na barra lateral para registrar pendências.")
 
-    # QUADRO 4: CONFIRMAR PAGAMENTO DE FIADO
     with st.expander("✅ CONFIRMAR RECEBIMENTO DE FIADO (Dar Baixa)", expanded=False):
-        df_fluxo_atual = st.session_state.fluxo_caixa
-        df_pendencias = df_fluxo_atual[df_fluxo_atual['Tipo'] == 'Pendência']
-        
+        df_pendencias = st.session_state.fluxo_caixa[st.session_state.fluxo_caixa['Tipo'] == 'Pendência']
         if not df_pendencias.empty:
-            opcoes_pendentes = {}
-            for idx, row in df_pendencias.iterrows():
-                try:
-                    data_f = pd.to_datetime(row['Data']).strftime('%d/%m/%Y')
-                except:
-                    data_f = str(row['Data'])
-                label_opcao = f"{row['Descrição']} - R$ {abs(row['Valor']):.2f} ({data_f})"
-                opcoes_pendentes[label_opcao] = idx
-                
-            pendencia_selecionada = st.selectbox("Selecione o cliente que está pagando agora:", list(opcoes_pendentes.keys()), key="sb_dar_baixa_fiado")
-            
-            if st.button("Baixar Débito e Registrar Entrada de Caixa", type="primary", key="btn_confirmar_baixa_fiado"):
+            opcoes_pendentes = {f"{row['Descrição']} - R$ {abs(row['Valor']):.2f}": idx for idx, row in df_pendencias.iterrows()}
+            pendencia_selecionada = st.selectbox("Selecione o cliente que está pagando:", list(opcoes_pendentes.keys()))
+            if st.button("Baixar Débito", type="primary"):
                 idx_alterar = opcoes_pendentes[pendencia_selecionada]
-                
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
-                st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now().date())
-                
-                desc_anterior = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição']
-                st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = desc_anterior.replace("Fiado de:", "Recebido Fiado:") + " [PAGO HOJE]"
-                
+                st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = datetime.now().date()
+                st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'].replace("Fiado de:", "Recebido Fiado:") + " [PAGO]"
                 salvar_fluxo(st.session_state.fluxo_caixa)
-                st.success("Sucesso! O valor foi migrado para as Entradas de hoje.")
                 st.rerun()
-        else:
-            st.info("Não existem contas fiadas em aberto no momento.")
 
 # --- LÓGICA DE CÁLCULO DOS GANHOS (D/W/M) ---
 df = st.session_state.fluxo_caixa.copy()
 if not df.empty:
-    df['Data'] = pd.to_datetime(df['Data'])
-    hoje = pd.Timestamp(datetime.now().date())
+    # Garantir que a coluna 'Data' seja do tipo 'date' (sem hora) para comparação correta
+    df['Data'] = pd.to_datetime(df['Data']).dt.date
+    hoje = datetime.now().date()
     
-    df_limpo = df.dropna(subset=['Data'])
-    df_diario = df_limpo[df_limpo['Data'].dt.date == hoje.date()]
-    df_semanal = df_limpo[df_limpo['Data'] >= (hoje - timedelta(days=7))]
-    df_mensal = df_limpo[df_limpo['Data'].dt.month == hoje.month]
+    df_diario = df[df['Data'] == hoje]
+    df_semanal = df[df['Data'] >= (hoje - timedelta(days=7))]
+    df_mensal = df[df['Data'].apply(lambda x: x.month == hoje.month and x.year == hoje.year)]
     
     ent_dia = df_diario[df_diario['Tipo'] == 'Entrada']['Valor'].sum()
     sai_dia = df_diario[df_diario['Tipo'] == 'Saída']['Valor'].sum()
@@ -440,66 +405,16 @@ else:
 # --- TAB 1: DASHBOARD ---
 with tab1:
     st.subheader("📊 Resumo Financeiro Real-Time")
-    
     m1, m2, m3 = st.columns(3)
-    with m1:
-        st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"+ R$ {ent_dia:.2f} Entradas")
-    with m2:
-        st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"+ R$ {ent_sem:.2f} Entradas")
-    with m3:
-        st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"+ R$ {ent_mes:.2f} Entradas")
-        
-    st.markdown("---")
-    st.subheader("📈 Resumo de Entradas vs Saídas (Mês Atual)")
+    m1.metric("Fechamento do Dia (Líquido)", f"R$ {lucro_dia:.2f}")
+    m2.metric("Últimos 7 Dias (Líquido)", f"R$ {lucro_sem:.2f}")
+    m3.metric("Mês Atual (Líquido)", f"R$ {lucro_mes:.2f}")
     
-    dados_grafico = pd.DataFrame({
-        "Categoria": ["Entradas", "Saídas"],
-        "Total (R$)": [ent_mes, abs(sai_mes)]
-    })
-    st.bar_chart(data=dados_grafico, x="Categoria", y="Total (R$)", color="#29b6f6")
+    st.bar_chart(pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]}), x="Categoria", y="Total (R$)")
 
-# --- TAB 3: HISTÓRICO DE CAIXA ---
+# --- TAB 3: HISTÓRICO ---
 with tab3:
-    st.subheader("📜 Histórico Completo de Transações")
-    
+    st.subheader("📜 Histórico Completo")
     if not df.empty:
-        df_filtro = df.dropna(subset=['Data']).copy()
-        df_filtro['Mês/Ano'] = df_filtro['Data'].dt.strftime('%m/%Y')
-        
-        meses_puros = df_filtro['Mês/Ano'].dropna().unique()
-        meses_disponiveis = sorted([str(m) for m in meses_puros if str(m).strip() and str(m) != 'nan'], reverse=True)
-        
-        opcoes_filtro = ["Ver Tudo"] + meses_disponiveis
-        mes_escolhido = st.selectbox("📅 Selecione o mês que deseja consultar:", opcoes_filtro, key="selectbox_filtro_mes_historico")
-        
-        if mes_escolhido != "Ver Tudo":
-            df_exibicao = df_filtro[df_filtro['Mês/Ano'] == mes_escolhido].copy()
-        else:
-            df_exibicao = df_filtro.copy()
-            
-        if not df_exibicao.empty:
-            df_exibicao = df_exibicao.sort_index(ascending=False)
-            
-            df_visualizacao = df_exibicao.copy()
-            df_visualizacao['Data'] = df_visualizacao['Data'].dt.strftime('%d/%m/%Y')
-            df_visualizacao = df_visualizacao.drop(columns=['Mês/Ano'])
-            
-            def colorir_linhas(row):
-                if row['Tipo'] == 'Entrada':
-                    return ['background-color: #d4edda; color: #155724; font-weight: bold'] * len(row)
-                elif row['Tipo'] == 'Saída':
-                    return ['background-color: #f8d7da; color: #721c24; font-weight: bold'] * len(row)
-                elif row['Tipo'] == 'Pendência':
-                    return ['background-color: #fff3cd; color: #856404; font-weight: bold'] * len(row)
-                return [''] * len(row)
-            
-            tabela_estilizada = df_visualizacao.style.apply(colorir_linhas, axis=1).format(
-                subset=["Valor"], 
-                formatter=lambda x: f"R$ {x:.2f}".replace('.', ',')
-            )
-            
-            st.dataframe(tabela_estilizada, use_container_width=True)
-        else:
-            st.info("Nenhum registro encontrado para este mês.")
-    else:
-        st.info("Nenhuma movimentação registrada até o momento.")
+        df_exibicao = df.sort_index(ascending=False).copy()
+        st.dataframe(df_exibicao, use_container_width=True)
