@@ -1,8 +1,12 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo  # Importação necessária para o fuso horário
 import os
 import json
+
+# --- CONFIGURAÇÃO DE FUSO HORÁRIO ---
+TZ = ZoneInfo("America/Sao_Paulo")
 
 # Configuração da página
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
@@ -15,8 +19,8 @@ ADMIN_MESTRE_PASS = "master2026"
 
 # --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (COM TRATAMENTO DE VALIDADE) ---
 def carregar_usuarios():
-    hoje_str = datetime.now().strftime("%Y-%m-%d")
-    vencimento_padrao = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+    hoje_str = datetime.now(TZ).strftime("%Y-%m-%d")
+    vencimento_padrao = (datetime.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
     
     if os.path.exists(USUARIOS_FILE):
         with open(USUARIOS_FILE, "r") as f:
@@ -51,7 +55,7 @@ def carregar_usuarios():
         "barbearia_vanguard": {
             "senha": "corte2026",
             "tipo": "Teste",
-            "vencimento": (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d"),
+            "vencimento": (datetime.now(TZ) + timedelta(days=7)).strftime("%Y-%m-%d"),
             "status": "Ativo"
         }
     }
@@ -132,7 +136,7 @@ if not st.session_state.autenticado:
                 # --- VALIDAÇÃO DE EXPIRAÇÃO AUTOMÁTICA ---
                 dados_user = usuarios_cadastrados[usuario_input]
                 data_vencimento = datetime.strptime(dados_user["vencimento"], "%Y-%m-%d").date()
-                hoje = datetime.now().date()
+                hoje = datetime.now(TZ).date()
                 
                 if hoje > data_vencimento or dados_user.get("status") == "Suspenso":
                     st.error(f"❌ ACESSO BLOQUEADO! O período de {dados_user['tipo']} venceu em {data_vencimento.strftime('%d/%m/%Y')}. Entre em contato com o suporte para renovação.")
@@ -176,7 +180,7 @@ if st.session_state.eh_admin:
                 elif novo_usuario == ADMIN_MESTRE_USER:
                     st.error("Nome reservado do sistema.")
                 else:
-                    vencimento_calculado = (datetime.now() + timedelta(days=dias_validade)).strftime("%Y-%m-%d")
+                    vencimento_calculado = (datetime.now(TZ) + timedelta(days=dias_validade)).strftime("%Y-%m-%d")
                     usuarios_cadastrados[novo_usuario] = {
                         "senha": nova_senha,
                         "tipo": tipo_conta,
@@ -194,7 +198,7 @@ if st.session_state.eh_admin:
         lista_formatada = []
         for user, info in usuarios_cadastrados.items():
             dt_venc = datetime.strptime(info['vencimento'], "%Y-%m-%d").date()
-            status_real = "Ativo" if datetime.now().date() <= dt_venc else "🔴 Expirado"
+            status_real = "Ativo" if datetime.now(TZ).date() <= dt_venc else "🔴 Expirado"
             lista_formatada.append({
                 "Salão / Usuário": user,
                 "Tipo": info["tipo"],
@@ -314,7 +318,7 @@ with tab2:
             preco_sugerido = st.session_state.servicos[servico_selecionado]
             
             preco_final = st.number_input("Valor Cobrado (R$):", value=preco_sugerido, step=1.0, key=f"entrada_val_{servico_selecionado}")
-            data_entrada = st.date_input("Data do Atendimento:", datetime.now().date(), key="entrada_data")
+            data_entrada = st.date_input("Data do Atendimento:", datetime.now(TZ).date(), key="entrada_data")
             
             if st.button("Confirmar e Lançar Entrada", type="primary"):
                 nova_linha = pd.DataFrame([{
@@ -334,7 +338,7 @@ with tab2:
     with st.expander("📤 REGISTRAR SAÍDA (Pagamento de Contas e Custos)", expanded=False):
         descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
         valor_saida = st.number_input("Valor da Despesa (R$):", min_value=0.0, step=5.0, key="saida_val")
-        data_saida = st.date_input("Data do Pagamento:", datetime.now().date(), key="saida_data")
+        data_saida = st.date_input("Data do Pagamento:", datetime.now(TZ).date(), key="saida_data")
         
         if st.button("Confirmar e Lançar Saída", type="primary"):
             if descricao_saida and valor_saida > 0:
@@ -359,7 +363,7 @@ with tab2:
             preco_sugerido_p = st.session_state.servicos[servico_pendente]
             
             preco_final_p = st.number_input("Valor Pendente (R$):", value=preco_sugerido_p, step=1.0, key=f"pendencia_val_{servico_pendente}")
-            data_pendencia = st.date_input("Data da Realização:", datetime.now().date(), key="pendencia_data")
+            data_pendencia = st.date_input("Data da Realização:", datetime.now(TZ).date(), key="pendencia_data")
             
             if st.button("Salvar Registro de Fiado", type="primary"):
                 if nome_devedor:
@@ -399,7 +403,7 @@ with tab2:
                 idx_alterar = opcoes_pendentes[pendencia_selecionada]
                 
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
-                st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now().date())
+                st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now(TZ).date())
                 
                 desc_anterior = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição']
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = desc_anterior.replace("Fiado de:", "Recebido Fiado:") + " [PAGO HOJE]"
@@ -414,7 +418,7 @@ with tab2:
 df = st.session_state.fluxo_caixa.copy()
 if not df.empty:
     df['Data'] = pd.to_datetime(df['Data'])
-    hoje = pd.Timestamp(datetime.now().date())
+    hoje = pd.Timestamp(datetime.now(TZ).date())
     
     df_limpo = df.dropna(subset=['Data'])
     df_diario = df_limpo[df_limpo['Data'].dt.date == hoje.date()]
