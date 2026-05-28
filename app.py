@@ -4,67 +4,25 @@ from datetime import datetime, timedelta
 import os
 import json
 
-# Configuração da página - Atualizado para o novo nome LucroNaRégua
-st.set_page_config(page_title="LucroNaRégua - Régua Financeira", layout="wide", page_icon="📈")
-
-# --- INJEÇÃO DE CSS PARA REMOVER O FORK E CABEÇALHO SUPERIOR ---
-st.markdown(
-    """
-    <style>
-    header[data-testid="stHeader"] {
-        visibility: hidden;
-        height: 0px;
-    }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Configuração da página
+st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
 USUARIOS_FILE = "usuarios.json"
-
-# --- DEFINIÇÃO DA IMAGEM ---
-# Procuramos primeiro localmente no diretório pelo arquivo "logo1.png" para garantir carregamento instantâneo.
-# Se não achar local, ele tenta o link direto do Git como contingência.
-LOCAL_IMAGE_PATH = "logo1.png"
-GITHUB_IMAGE_URL = "https://raw.githubusercontent.com/cassioalmeidads/sal-ofinan-as-/main/logo1.png"
-
-def exibir_logo():
-    if os.path.exists(LOCAL_IMAGE_PATH):
-        st.image(LOCAL_IMAGE_PATH, use_container_width=True)
-    else:
-        # Se não achar local, tenta o link direto e trata o erro caso o Git esteja fora do ar
-        try:
-            st.image(GITHUB_IMAGE_URL, use_container_width=True)
-        except Exception:
-            # Evita que o sistema quebre caso ocorra um problema de conexão com a imagem externa
-            st.warning("⚠️ Carregando componentes do sistema LucroNaRégua...")
-
-# --- FUNÇÃO DO RESUMO FINANCEIRO (EXPANDER RETRÁTIL) ---
-def exibir_resumo_financeiro(lucro_dia, ent_dia, lucro_sem, ent_sem, lucro_mes, ent_mes):
-    with st.expander("📊 Resumo Financeiro", expanded=True):
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"+ R$ {ent_dia:.2f} Entradas")
-        with m2:
-            st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"+ R$ {ent_sem:.2f} Entradas")
-        with m3:
-            st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"+ R$ {ent_mes:.2f} Entradas")
 
 # --- CONFIGURAÇÃO DO ADMINISTRADOR MESTRE (VOCÊ) ---
 ADMIN_MESTRE_USER = "admin"
 ADMIN_MESTRE_PASS = "master2026"
 
-# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS ---
+# --- FUNÇÕES DE GERENCIAMENTO DE USUÁRIOS (COM TRATAMENTO DE VALIDADE) ---
 def carregar_usuarios():
+    hoje_str = datetime.now().strftime("%Y-%m-%d")
     vencimento_padrao = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
     
     if os.path.exists(USUARIOS_FILE):
         with open(USUARIOS_FILE, "r") as f:
             dados = json.load(f)
             
-        # Migração automática caso o arquivo antigo esteja no formato antigo
+        # Migração automática caso o arquivo antigo esteja no formato antigo (string simples)
         usuarios_atualizados = {}
         modificado = False
         for k, v in dados.items():
@@ -82,7 +40,7 @@ def carregar_usuarios():
             salvar_usuarios(usuarios_atualizados)
         return usuarios_atualizados
 
-    # Dados iniciais
+    # Dados iniciais caso não exista o arquivo
     usuarios_padrao = {
         "salao_central": {
             "senha": "admin123",
@@ -141,32 +99,19 @@ def salvar_fluxo(df):
     _, fluxo_file = obter_nomes_arquivos()
     df.to_csv(fluxo_file, index=False)
 
-# --- CONTROLE PERSISTENTE DE SESSÃO E LOGIN ---
-usuarios_cadastrados = carregar_usuarios()
-
-# Recupera o estado persistente do usuário dos parâmetros da URL para evitar deslogar no F5
+# --- CONTROLE DE SESSÃO E LOGIN ---
 if 'autenticado' not in st.session_state:
-    if "user" in st.query_params and "auth" in st.query_params and st.query_params["auth"] == "true":
-        user_param = st.query_params["user"]
-        if user_param == "administrador":
-            st.session_state.autenticado = True
-            st.session_state.usuario_logado = "Administrador"
-            st.session_state.eh_admin = True
-        elif user_param in usuarios_cadastrados:
-            st.session_state.autenticado = True
-            st.session_state.usuario_logado = user_param
-            st.session_state.eh_admin = False
-            st.session_state.servicos = carregar_servicos()
-            st.session_state.fluxo_caixa = carregar_fluxo()
-    else:
-        st.session_state.autenticado = False
-        st.session_state.usuario_logado = None
-        st.session_state.eh_admin = False
+    st.session_state.autenticado = False
+if 'usuario_logado' not in st.session_state:
+    st.session_state.usuario_logado = None
+if 'eh_admin' not in st.session_state:
+    st.session_state.eh_admin = False
+
+usuarios_cadastrados = carregar_usuarios()
 
 # --- TELA DE LOGIN ---
 if not st.session_state.autenticado:
-    # Exibe a imagem padrão oficial no topo da tela de login de maneira segura
-    exibir_logo()
+    st.title("✂️ Sistema de Gestão - Login")
     st.markdown("---")
     
     with st.form("form_login"):
@@ -180,9 +125,6 @@ if not st.session_state.autenticado:
                 st.session_state.autenticado = True
                 st.session_state.usuario_logado = "Administrador"
                 st.session_state.eh_admin = True
-                # Persiste nos parâmetros da query para manter conectado
-                st.query_params["auth"] = "true"
-                st.query_params["user"] = "administrador"
                 st.success("Acesso master concedido!")
                 st.rerun()
             elif usuario_input in usuarios_cadastrados and usuarios_cadastrados[usuario_input]["senha"] == senha_input:
@@ -201,9 +143,6 @@ if not st.session_state.autenticado:
                 st.session_state.eh_admin = False
                 st.session_state.servicos = carregar_servicos()
                 st.session_state.fluxo_caixa = carregar_fluxo()
-                # Persiste nos parâmetros da query para manter conectado
-                st.query_params["auth"] = "true"
-                st.query_params["user"] = usuario_input
                 st.success(f"Carregando painel de {usuario_input}...")
                 st.rerun()
             else:
@@ -286,7 +225,6 @@ if st.session_state.eh_admin:
             st.session_state.autenticado = False
             st.session_state.usuario_logado = None
             st.session_state.eh_admin = False
-            st.query_params.clear()
             st.rerun()
     st.stop()
 
@@ -295,11 +233,18 @@ if st.session_state.eh_admin:
 # --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (SALÃO INDIVIDUAL) ----
 # =====================================================================
 
-# Adiciona o banner padrão oficial do LucroNaRégua no topo buscando de forma segura
-exibir_logo()
+nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
+st.title(f"✂️ {nome_salao_formatado} - Gestão Financeira")
 
-# --- MENU DE CONFIGURAÇÕES MOVIDO PARA ABAIXO DA LOGO ---
-with st.expander("⚙️ Menu de Opções & Configurações de Serviços", expanded=False):
+# Mostrar detalhes da licença do próprio usuário logado de maneira sutil
+dados_proprios = usuarios_cadastrados[st.session_state.usuario_logado]
+venc_f = datetime.strptime(dados_proprios['vencimento'], "%Y-%m-%d").strftime("%d/%m/%Y")
+st.markdown(f"*Painel Exclusivo | Licença Tipo: **{dados_proprios['tipo']}** (Válida até {venc_f})*")
+st.markdown("---")
+
+# --- SIDEBAR: GERENCIAR SERVIÇOS ---
+with st.sidebar:
+    st.header("⚙️ Configurações de Serviços")
     st.markdown("Selecione um serviço para alterar ou escolha criar um novo.")
     
     opcoes_gerenciamento = ["➕ Cadastrar Novo Serviço"] + list(st.session_state.servicos.keys())
@@ -352,11 +297,7 @@ with st.expander("⚙️ Menu de Opções & Configurações de Serviços", expan
         st.session_state.autenticado = False
         st.session_state.usuario_logado = None
         st.session_state.eh_admin = False
-        st.query_params.clear()
         st.rerun()
-
-# Espaçamento para organizar o layout com o novo menu
-st.markdown("<br>", unsafe_allow_html=True)
 
 # --- ABAS DA TELA PRINCIPAL ---
 tab1, tab2, tab3 = st.tabs(["📊 Dashboard", "💰 Lançar Movimentação", "📜 Histórico de Caixa"])
@@ -498,8 +439,15 @@ else:
 
 # --- TAB 1: DASHBOARD ---
 with tab1:
-    # Chamando a nova função que engloba as métricas diária, semanal e mensal dentro do expander
-    exibir_resumo_financeiro(lucro_dia, ent_dia, lucro_sem, ent_sem, lucro_mes, ent_mes)
+    st.subheader("📊 Resumo Financeiro Real-Time")
+    
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}", delta=f"+ R$ {ent_dia:.2f} Entradas")
+    with m2:
+        st.metric(label="Últimos 7 Dias (Líquido)", value=f"R$ {lucro_sem:.2f}", delta=f"+ R$ {ent_sem:.2f} Entradas")
+    with m3:
+        st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}", delta=f"+ R$ {ent_mes:.2f} Entradas")
         
     st.markdown("---")
     st.subheader("📈 Resumo de Entradas vs Saídas (Mês Atual)")
