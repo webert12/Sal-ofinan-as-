@@ -102,31 +102,40 @@ st.markdown("""
         border: 1px solid #d4af37;
     }
 
-    /* CENTRALIZAÇÃO ABSOLUTA DOS BOTÕES +/- (CELULAR E PC) */
+    /* FIX DEFINITIVO: CENTRALIZAÇÃO ABSOLUTA DOS BOTÕES +/- (CELULAR E PC) */
+    div[data-testid="stNumberInputContainer"] > div {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
     div[data-testid="stNumberInputContainer"] button {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        height: 40px !important;
+        width: 40px !important;
         padding: 0 !important;
         margin: 0 !important;
-        line-height: 1 !important;
-        height: 100% !important;
     }
-    
-    div[data-testid="stNumberInputContainer"] button * {
+
+    /* Remove a quebra e a herança de linha que jogava o caractere para baixo */
+    div[data-testid="stNumberInputStepDown"] p, 
+    div[data-testid="stNumberInputStepUp"] p,
+    div[data-testid="stNumberInputStepDown"] *, 
+    div[data-testid="stNumberInputStepUp"] * {
+        margin: 0 !important;
+        line-height: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        line-height: 1 !important;
-        margin: 0 !important;
-        padding: 0 !important;
     }
-    
-    div[data-testid="stNumberInputStepUp"], 
-    div[data-testid="stNumberInputStepDown"] {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+
+    @media (max-width: 768px) {
+        div[data-testid="stNumberInputContainer"] button {
+            height: 35px !important;
+            width: 35px !important;
+        }
     }
 
     /* Estilização da caixa de confirmação com borda dourada */
@@ -325,7 +334,7 @@ with tab0:
             if list(st.session_state.servicos.keys()):
                 servico_selecionado = st.selectbox("Serviço realizado:", list(st.session_state.servicos.keys()), key="f_atend_serv")
                 
-                # CORREÇÃO: Key dinâmica baseada no nome do serviço selecionado garante preço atualizado na hora
+                # Chave dinâmica baseada no nome do serviço selecionado garante preço atualizado na hora
                 preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0, key=f"prc_atend_din_{servico_selecionado}")
                 
                 data_entrada = st.date_input("Data:", datetime.now(TZ).date(), key="f_atend_dt")
@@ -379,7 +388,7 @@ with tab0:
                 nome_devedor = st.text_input("Nome do Cliente:", key="f_fiado_nome")
                 servico_pendente = st.selectbox("Serviço:", list(st.session_state.servicos.keys()), key="f_fiado_serv")
                 
-                # CORREÇÃO: Key dinâmica baseada no nome do serviço do fiado garante preço atualizado na hora
+                # Chave dinâmica baseada no nome do serviço do fiado garante preço atualizado na hora
                 preco_final_p = st.number_input("Valor (R$):", value=float(st.session_state.servicos[servico_pendente]), key=f"prc_fiado_din_{servico_pendente}")
                 
                 data_pendencia = st.date_input("Data:", datetime.now(TZ).date(), key="f_fiado_dt")
@@ -451,7 +460,7 @@ with st.sidebar:
     nome_padrao = "" if servico_sel == "➕ Cadastrar Novo Serviço" else servico_sel
     preco_padrao = 0.0 if servico_sel == "➕ Cadastrar Novo Serviço" else float(st.session_state.servicos[servico_sel])
     
-    # CORREÇÃO: Chaves dinâmicas também na barra lateral impedem travamento ao criar/editar consecutivos
+    # Chaves dinâmicas também na barra lateral impedem travamento ao criar/editar consecutivos
     novo_servico = st.text_input("Nome do Serviço:", value=nome_padrao, key=f"side_nome_din_{servico_sel}")
     novo_preco = st.number_input("Preço Cobrado (R$):", min_value=0.0, value=preco_padrao, step=5.0, key=f"side_prc_din_{servico_sel}")
     
