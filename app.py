@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import os
 import json
+import time
 
 # --- CONFIGURAÇÃO DE FUSO HORÁRIO ---
 TZ = ZoneInfo("America/Sao_Paulo")
@@ -11,7 +12,7 @@ TZ = ZoneInfo("America/Sao_Paulo")
 # Configuração da página
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- ESTILIZAÇÃO CSS PROFISSIONAL E COMPATÍVEL ---
+# --- ESTILIZAÇÃO CSS PROFISSIONAL E CORREÇÕES VISUAIS ---
 st.markdown("""
 <style>
     body, .stApp {
@@ -99,6 +100,39 @@ st.markdown("""
         padding: 15px;
         border-radius: 8px;
         border: 1px solid #d4af37;
+    }
+
+    /* CORREÇÃO: Centralização dos botões +/- do input numérico */
+    div[data-testid="stNumberInputStepDown"], 
+    div[data-testid="stNumberInputStepUp"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    div[data-testid="stNumberInputStepDown"] button, 
+    div[data-testid="stNumberInputStepUp"] button {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    /* Estilização customizada para a caixa de confirmação com borda dourada */
+    .confirmacao-dourada {
+        background-color: #1e1e1e;
+        border: 2px solid #d4af37;
+        padding: 12px 15px;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: 500;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -267,13 +301,12 @@ with tab0:
     st.markdown('<div class="sim-header"><span class="sim-header-title">Fio&Caixa</span></div>', unsafe_allow_html=True)
     st.markdown('<div class="fast-actions-header"><span class="fast-actions-title">Ações rápidas</span><div class="fast-actions-line"></div></div>', unsafe_allow_html=True)
 
-    # Grid de Ações Rápidas estruturado com formulários embutidos diretamente abaixo de cada botão
+    # Grid de Ações Rápidas
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     
     with col_a:
         st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
         if st.button("✂️ Novo atendimento  ❯", key="btn_atend", use_container_width=True):
-            # Se já estiver ativo, o clique fecha (Toggle)
             st.session_state.formulario_ativo = 'none' if st.session_state.formulario_ativo == 'new_atendimento' else 'new_atendimento'
             st.rerun()
             
@@ -287,7 +320,12 @@ with tab0:
                 if st.button("Lançar", type="primary", key="f_atend_save", use_container_width=True):
                     nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_entrada), "Tipo": "Entrada", "Descrição": f"Atendimento: {servico_selecionado}", "Valor": preco_final}])
                     st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
-                    st.session_state.formulario_ativo = 'none'; st.rerun()
+                    
+                    # Exibição de confirmação estilizada com Borda Dourada
+                    st.markdown('<div class="confirmacao-dourada">✅ Atendimento registrado com sucesso!</div>', unsafe_allow_html=True)
+                    st.session_state.formulario_ativo = 'none'
+                    time.sleep(1.2)
+                    st.rerun()
             else:
                 st.info("Cadastre serviços na barra lateral.")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -308,7 +346,12 @@ with tab0:
                 if descricao_saida and valor_saida > 0:
                     nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_saida), "Tipo": "Saída", "Descrição": descricao_saida, "Valor": -valor_saida}])
                     st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
-                    st.session_state.formulario_ativo = 'none'; st.rerun()
+                    
+                    # Exibição de confirmação estilizada com Borda Dourada
+                    st.markdown('<div class="confirmacao-dourada">✅ Despesa registrada com sucesso!</div>', unsafe_allow_html=True)
+                    st.session_state.formulario_ativo = 'none'
+                    time.sleep(1.2)
+                    st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
             
     with col_c:
@@ -329,7 +372,12 @@ with tab0:
                     if nome_devedor:
                         nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_pendencia), "Tipo": "Pendência", "Descrição": f"Fiado de: {nome_devedor} ({servico_pendente})", "Valor": preco_final_p}])
                         st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
-                        st.session_state.formulario_ativo = 'none'; st.rerun()
+                        
+                        # Exibição de confirmação estilizada com Borda Dourada
+                        st.markdown('<div class="confirmacao-dourada">✅ Corte fiado pendente registrado!</div>', unsafe_allow_html=True)
+                        st.session_state.formulario_ativo = 'none'
+                        time.sleep(1.2)
+                        st.rerun()
             else:
                 st.info("Cadastre serviços na barra lateral.")
             st.markdown('</div>', unsafe_allow_html=True)
@@ -352,7 +400,13 @@ with tab0:
                     st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
                     st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now(TZ).date())
                     st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'].replace("Fiado de:", "Recebido Fiado:") + " [PAGO]"
-                    salvar_fluxo(st.session_state.fluxo_caixa); st.session_state.formulario_ativo = 'none'; st.rerun()
+                    salvar_fluxo(st.session_state.fluxo_caixa)
+                    
+                    # Exibição de confirmação estilizada com Borda Dourada
+                    st.markdown('<div class="confirmacao-dourada">✅ Baixa de fiado registrada com sucesso!</div>', unsafe_allow_html=True)
+                    st.session_state.formulario_ativo = 'none'
+                    time.sleep(1.2)
+                    st.rerun()
             else:
                 st.info("Nenhum fiado em aberto.")
             st.markdown('</div>', unsafe_allow_html=True)
