@@ -15,44 +15,134 @@ st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page
 # --- ESTILIZAÇÃO CSS PROFISSIONAL E CORREÇÕES VISUAIS ---
 st.markdown("""
 <style>
-    /* ... (mantenha seu CSS anterior aqui) ... */
-
-    /* FORÇAR CENTRALIZAÇÃO DOS BOTÕES DE INCREMENTO */
-    div[data-testid="stNumberInputContainer"] > div {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+    body, .stApp {
+        background-color: #121212;
+        color: white;
+    }
+    
+    .sim-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #333;
+        margin-bottom: 20px;
+    }
+    .sim-header-title {
+        color: #d4af37;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .fast-actions-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .fast-actions-title {
+        color: white;
+        font-weight: bold;
+        font-size: 1rem;
+        margin-right: 10px;
+    }
+    .fast-actions-line {
+        flex-grow: 1;
+        height: 2px;
+        background-color: #d4af37;
     }
 
+    .is-action-card {
+        display: none;
+    }
+
+    /* TRANSFORMAÇÃO DOS BOTÕES NATIVOS EM CARDS SEGUROS */
+    div[data-testid="stColumn"]:has(.is-action-card) button {
+        background-color: #22252a !important;
+        color: white !important;
+        border: 1px solid #333 !important;
+        border-radius: 8px !important;
+        padding: 18px 15px !important;
+        min-height: 75px !important;
+        width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        transition: all 0.2s ease-in-out !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
+        cursor: pointer !important;
+    }
+    
+    div[data-testid="stColumn"]:has(.is-action-card) button p {
+        color: white !important;
+        font-weight: 500 !important;
+        font-size: 0.95rem !important;
+        margin: 0 !important;
+        text-align: left !important;
+    }
+    
+    div[data-testid="stColumn"]:has(.is-action-card) button:hover {
+        background-color: #2a2e35 !important;
+        border-color: #d4af37 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(212, 175, 55, 0.1) !important;
+    }
+    
+    div[data-testid="stColumn"]:has(.is-action-card) button:active {
+        background-color: #d4af37 !important;
+        border-color: #d4af37 !important;
+    }
+    
+    /* Container do formulário embutido abaixo do botão */
+    .embedded-form-container {
+        margin-top: 15px;
+        background-color: #1a1d21;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #d4af37;
+    }
+
+    /* CENTRALIZAÇÃO ABSOLUTA DOS BOTÕES +/- (CELULAR E PC) */
     div[data-testid="stNumberInputContainer"] button {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        height: 40px !important; /* Altura fixa para garantir centralização */
-        width: 40px !important;
         padding: 0 !important;
         margin: 0 !important;
+        line-height: 1 !important;
+        height: 100% !important;
     }
-
-    /* Remove qualquer margem interna extra que o Streamlit possa estar aplicando */
-    div[data-testid="stNumberInputStepDown"] p, 
-    div[data-testid="stNumberInputStepUp"] p {
+    
+    div[data-testid="stNumberInputContainer"] button * {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1 !important;
         margin: 0 !important;
-        line-height: 0 !important;
+        padding: 0 !important;
+    }
+    
+    div[data-testid="stNumberInputStepUp"], 
+    div[data-testid="stNumberInputStepDown"] {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
     }
 
-    /* Correção específica para dispositivos móveis */
-    @media (max-width: 768px) {
-        div[data-testid="stNumberInputContainer"] button {
-            height: 35px !important;
-            width: 35px !important;
-        }
+    /* Estilização da caixa de confirmação com borda dourada */
+    .confirmacao-dourada {
+        background-color: #1e1e1e;
+        border: 2px solid #d4af37;
+        padding: 12px 15px;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: 500;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 </style>
-
 """, unsafe_allow_html=True)
 
 # --- INICIALIZAÇÃO DE ESTADOS ---
@@ -222,6 +312,7 @@ with tab0:
     # Grid de Ações Rápidas
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     
+    # 1. NOVO ATENDIMENTO
     with col_a:
         st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
         if st.button("✂️ Novo atendimento  ❯", key="btn_atend", use_container_width=True):
@@ -233,7 +324,10 @@ with tab0:
             st.write("**📥 Novo Atendimento**")
             if list(st.session_state.servicos.keys()):
                 servico_selecionado = st.selectbox("Serviço realizado:", list(st.session_state.servicos.keys()), key="f_atend_serv")
-                preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0, key="f_atend_prc")
+                
+                # CORREÇÃO: Key dinâmica baseada no nome do serviço selecionado garante preço atualizado na hora
+                preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0, key=f"prc_atend_din_{servico_selecionado}")
+                
                 data_entrada = st.date_input("Data:", datetime.now(TZ).date(), key="f_atend_dt")
                 if st.button("Lançar", type="primary", key="f_atend_save", use_container_width=True):
                     nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_entrada), "Tipo": "Entrada", "Descrição": f"Atendimento: {servico_selecionado}", "Valor": preco_final}])
@@ -247,6 +341,7 @@ with tab0:
                 st.info("Cadastre serviços na barra lateral.")
             st.markdown('</div>', unsafe_allow_html=True)
             
+    # 2. NOVA DESPESA
     with col_b:
         st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
         if st.button("🛍️ Nova despesa  ❯", key="btn_venda", use_container_width=True):
@@ -270,6 +365,7 @@ with tab0:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
             
+    # 3. MARCAR FIADO
     with col_c:
         st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
         if st.button("💰 Marcar fiado  ❯", key="btn_receber", use_container_width=True):
@@ -282,7 +378,10 @@ with tab0:
             if list(st.session_state.servicos.keys()):
                 nome_devedor = st.text_input("Nome do Cliente:", key="f_fiado_nome")
                 servico_pendente = st.selectbox("Serviço:", list(st.session_state.servicos.keys()), key="f_fiado_serv")
-                preco_final_p = st.number_input("Valor (R$):", value=float(st.session_state.servicos[servico_pendente]), key="f_fiado_prc")
+                
+                # CORREÇÃO: Key dinâmica baseada no nome do serviço do fiado garante preço atualizado na hora
+                preco_final_p = st.number_input("Valor (R$):", value=float(st.session_state.servicos[servico_pendente]), key=f"prc_fiado_din_{servico_pendente}")
+                
                 data_pendencia = st.date_input("Data:", datetime.now(TZ).date(), key="f_fiado_dt")
                 if st.button("Salvar", type="primary", key="f_fiado_save", use_container_width=True):
                     if nome_devedor:
@@ -297,6 +396,7 @@ with tab0:
                 st.info("Cadastre serviços na barra lateral.")
             st.markdown('</div>', unsafe_allow_html=True)
             
+    # 4. RECEBER FIADO
     with col_d:
         st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
         if st.button("💸 Receber fiado  ❯", key="btn_pagar", use_container_width=True):
@@ -325,6 +425,7 @@ with tab0:
                 st.info("Nenhum fiado em aberto.")
             st.markdown('</div>', unsafe_allow_html=True)
             
+    # 5. VER RELATÓRIOS
     with col_e:
         st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
         if st.button("📊 Ver relatórios  ❯", key="btn_relatorios", use_container_width=True):
@@ -350,13 +451,17 @@ with st.sidebar:
     nome_padrao = "" if servico_sel == "➕ Cadastrar Novo Serviço" else servico_sel
     preco_padrao = 0.0 if servico_sel == "➕ Cadastrar Novo Serviço" else float(st.session_state.servicos[servico_sel])
     
-    novo_servico = st.text_input("Nome do Serviço:", value=nome_padrao)
-    novo_preco = st.number_input("Preço Cobrado (R$):", min_value=0.0, value=preco_padrao, step=5.0)
+    # CORREÇÃO: Chaves dinâmicas também na barra lateral impedem travamento ao criar/editar consecutivos
+    novo_servico = st.text_input("Nome do Serviço:", value=nome_padrao, key=f"side_nome_din_{servico_sel}")
+    novo_preco = st.number_input("Preço Cobrado (R$):", min_value=0.0, value=preco_padrao, step=5.0, key=f"side_prc_din_{servico_sel}")
     
     if st.button("Salvar Alteração", type="primary", use_container_width=True):
         if novo_servico:
-            if servico_sel != "➕ Cadastrar Novo Serviço": del st.session_state.servicos[servico_sel]
-            st.session_state.servicos[novo_servico] = novo_preco; salvar_servicos(st.session_state.servicos); st.rerun()
+            if servico_sel != "➕ Cadastrar Novo Serviço" and servico_sel != novo_servico: 
+                del st.session_state.servicos[servico_sel]
+            st.session_state.servicos[novo_servico] = novo_preco
+            salvar_servicos(st.session_state.servicos)
+            st.rerun()
             
     if servico_sel != "➕ Cadastrar Novo Serviço" and st.button("🗑️ Remover Serviço do Catálogo", use_container_width=True):
         del st.session_state.servicos[servico_sel]; salvar_servicos(st.session_state.servicos); st.rerun()
