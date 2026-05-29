@@ -15,7 +15,7 @@ st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page
 # Carregar FontAwesome para os ícones
 st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">', unsafe_allow_html=True)
 
-# CSS personalizado para emular o design da imagem
+# CSS personalizado para emular o design da imagem sem quebrar a sessão
 st.markdown("""
 <style>
     /* Estilos globais para tema escuro */
@@ -80,15 +80,9 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 10px;
-        cursor: pointer;
         transition: background-color 0.3s;
         border: 1px solid #333;
-    }
-    
-    /* Efeito de hover nos cartões */
-    .fast-action-item:hover {
-        background-color: #333; /* Fundo mais claro ao passar o mouse */
+        pointer-events: none; /* Deixa o clique passar direto para o botão invisível por baixo */
     }
     
     /* Ícone dourado à esquerda */
@@ -103,8 +97,8 @@ st.markdown("""
         color: white;
         font-weight: 500;
         font-size: 0.9rem;
-        flex-grow: 1; /* Para centralizar o texto */
-        text-align: left; /* Alinhado à esquerda como na imagem */
+        flex-grow: 1;
+        text-align: left;
     }
     
     /* Chevron dourado à direita */
@@ -112,67 +106,57 @@ st.markdown("""
         color: #d4af37; /* Seta dourada */
         font-size: 1rem;
     }
+
+    /* TRUQUE DO BOTÃO INVISÍVEL: Faz o botão do Streamlit cobrir o card HTML perfeitamente */
+    div[data-testid="stColumn"]:has(.fast-action-item) {
+        position: relative;
+    }
     
-    /* Resetar estilos de link padrão nos cartões */
-    .fast-action-item-link {
-        text-decoration: none;
-        color: inherit;
-        display: block; /* Para o link ocupar todo o cartão */
+    div[data-testid="stColumn"]:has(.fast-action-item) .stButton {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+    }
+    
+    div[data-testid="stColumn"]:has(.fast-action-item) .stButton > button {
+        width: 100% !important;
+        height: 100% !important;
+        background-color: transparent !important;
+        border: none !important;
+        color: transparent !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        cursor: pointer;
     }
 
-    /* Ocultar os expansores padrão do Streamlit para um visual mais limpo */
-    .st-expander {
-        border: none !important;
-        box-shadow: none !important;
-    }
-    .st-expander-label {
-        display: none !important;
+    /* Aplica o efeito de Hover visual no card quando o botão invisível recebe foco ou mouse */
+    div[data-testid="stColumn"]:has(.fast-action-item):hover .fast-action-item {
+        background-color: #333 !important;
     }
     
 </style>
 """, unsafe_allow_html=True)
 
-# Funções auxiliares para renderizar os cartões de ação rápida
-def renderizar_acao_rapida(icon_class, text, query_param):
-    """Renderiza um cartão de ação rápida clicável com HTML e CSS personalizado."""
-    # Cria o link de query parameter para recarregar a página e acionar a ação
-    query_link = f"{st.query_params['base_url']}?action={query_param}" if 'base_url' in st.query_params else f"/?action={query_param}"
+# Função auxiliar simplificada apenas para gerar o visual estático do card
+def renderizar_acao_rapida(icon_class, text):
+    """Renderiza a estrutura visual de um cartão de ação rápida."""
     return f"""
-    <a href="{query_link}" class="fast-action-item-link" target="_self">
-        <div class="fast-action-item">
-            <i class="{icon_class} fast-action-icon"></i>
-            <span class="fast-action-text">{text}</span>
-            <i class="fa fa-chevron-right fast-action-chevron"></i>
-        </div>
-    </a>
+    <div class="fast-action-item">
+        <i class="{icon_class} fast-action-icon"></i>
+        <span class="fast-action-text">{text}</span>
+        <i class="fa fa-chevron-right fast-action-chevron"></i>
+    </div>
     """
 
-# --- INICIALIZAÇÃO E PROCESSAMENTO DE PARÂMETROS DE QUERY ---
-# Inicializar parâmetros de query para detectar cliques
-if 'action' not in st.query_params:
-    st.query_params['action'] = 'none'
-
-# Definir o formulário ativo com base no parâmetro de query
+# --- INICIALIZAÇÃO DE ESTADOS ---
 if 'formulario_ativo' not in st.session_state:
     st.session_state.formulario_ativo = 'none'
 
-if st.query_params['action'] != 'none':
-    st.session_state.formulario_ativo = st.query_params['action']
-    # Resetar o parâmetro de query para evitar loops e recarregamentos
-    st.query_params['action'] = 'none'
-
-# Obter a URL base da aplicação
-if 'base_url' not in st.session_state:
-    # Em produção, st.query_params['base_url'] é preenchido pelo Streamlit
-    # Localmente, definimos um fallback para "/"
-    st.session_state.base_url = "/"
-if 'base_url' not in st.query_params:
-    st.query_params['base_url'] = st.session_state.base_url
-
-# Definir a URL de query base para os links
-url_base_query = f"{st.query_params['base_url']}?action="
-
-# --- CONFIGURAÇÃO DE FUSO HORÁRIO E ARQUIVOS (MANTIDO) ---
+# --- CONFIGURAÇÃO DE ARQUIVOS (MANTIDO) ---
 TZ = ZoneInfo("America/Sao_Paulo")
 USUARIOS_FILE = "usuarios.json"
 ADMIN_MESTRE_USER = "admin"
@@ -304,7 +288,7 @@ if not st.session_state.autenticado:
     st.stop()
 
 # =====================================================================
-# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE (MANTIDO) ---
+# --- INTERFACE 1: PAINEL DO ADMINISTRADOR MESTRE ---
 # =====================================================================
 if st.session_state.eh_admin:
     st.title("👑 Central do Administrador - Gestão de Clientes & Licenças")
@@ -339,9 +323,9 @@ if st.session_state.eh_admin:
 
 
 # =====================================================================
-# --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE (MODIFICADO) ---
+# --- INTERFACE 2: PAINEL EXCLUSIVO DO CLIENTE ---
 # =====================================================================
-# Preparação dos dados para Dashboard e Histórico (movido para antes das abas)
+# Preparação dos dados para Dashboard e Histórico
 df_fluxo_caixa = st.session_state.fluxo_caixa.copy()
 if not df_fluxo_caixa.empty:
     df_fluxo_caixa['Data'] = pd.to_datetime(df_fluxo_caixa['Data'])
@@ -358,12 +342,12 @@ if not df_fluxo_caixa.empty:
 else:
     ent_dia = sai_dia = lucro_dia = ent_sem = sai_sem = lucro_sem = ent_mes = sai_mes = lucro_mes = 0
 
-# --- ABAS DA TELA PRINCIPAL (MODIFICADO: Aba "Lançamentos" integrada em "Início") ---
+# --- ABAS DA TELA PRINCIPAL ---
 tab0, tab1, tab2 = st.tabs(["🚀 Início / Ações Rápidas", "📊 Dashboard", "📜 Histórico"])
 
-# --- TAB 0: INÍCIO E AÇÕES RÁPIDAS (NOVO LAYOUT) ---
+# --- TAB 0: INÍCIO E AÇÕES RÁPIDAS ---
 with tab0:
-    # Simulação de cabeçalho
+    # Simulação de cabeçalho do App
     st.markdown("""
     <div class="sim-header">
         <span class="sim-header-title">Fio&Caixa</span>
@@ -385,49 +369,59 @@ with tab0:
     # Container de Ações Rápidas
     st.markdown('<div class="fast-actions-container">', unsafe_allow_html=True)
     
-    # Ícones que melhor se parecem com os da imagem
-    icon_atendimento = "fa fa-scissors" # Tesoura para atendimento
-    icon_venda = "fa fa-shopping-cart" # Carrinho para venda
-    icon_receber = "fa fa-piggy-bank" # Cofrinho para receber (não tem o +)
-    icon_pagar = "fa fa-hand-holding-usd" # Mão com dinheiro para pagar
-    icon_relatorios = "fa fa-chart-bar" # Gráfico de barras para relatórios
+    # Definição dos ícones correspondentes
+    icon_atendimento = "fa fa-scissors" 
+    icon_venda = "fa fa-shopping-cart" 
+    icon_receber = "fa fa-piggy-bank" 
+    icon_pagar = "fa fa-hand-holding-usd" 
+    icon_relatorios = "fa fa-chart-bar" 
 
-    # Renderizar os cartões de ação rápida com parâmetros de query
+    # Colunas com os Cards e os botões transparentes por cima (sem recarregar a página)
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     with col_a:
-        # Usamos st.query_params para criar links clicáveis que recarregam a página com o parâmetro 'action'
-        # Em produção, st.query_params['base_url'] é preenchido automaticamente
-        query_link = f"/?action=new_atendimento"
-        st.markdown(renderizar_acao_rapida(icon_atendimento, "Novo atendimento", "new_atendimento"), unsafe_allow_html=True)
+        st.markdown(renderizar_acao_rapida(icon_atendimento, "Novo atendimento"), unsafe_allow_html=True)
+        if st.button("", key="btn_fast_atendimento"):
+            st.session_state.formulario_ativo = 'new_atendimento'
+            st.rerun()
     with col_b:
-        st.markdown(renderizar_acao_rapida(icon_venda, "Nova venda", "new_venda"), unsafe_allow_html=True)
+        st.markdown(renderizar_acao_rapida(icon_venda, "Nova venda"), unsafe_allow_html=True)
+        if st.button("", key="btn_fast_venda"):
+            st.session_state.formulario_ativo = 'new_venda'
+            st.rerun()
     with col_c:
-        st.markdown(renderizar_acao_rapida(icon_receber, "Contas a receber", "new_receber"), unsafe_allow_html=True)
+        st.markdown(renderizar_acao_rapida(icon_receber, "Contas a receber"), unsafe_allow_html=True)
+        if st.button("", key="btn_fast_receber"):
+            st.session_state.formulario_ativo = 'new_receber'
+            st.rerun()
     with col_d:
-        st.markdown(renderizar_acao_rapida(icon_pagar, "Contas a pagar", "new_pagar"), unsafe_allow_html=True)
+        st.markdown(renderizar_acao_rapida(icon_pagar, "Contas a pagar"), unsafe_allow_html=True)
+        if st.button("", key="btn_fast_pagar"):
+            st.session_state.formulario_ativo = 'new_pagar'
+            st.rerun()
     with col_e:
-        st.markdown(renderizar_acao_rapida(icon_relatorios, "Relatórios", "view_relatorios"), unsafe_allow_html=True)
+        st.markdown(renderizar_acao_rapida(icon_relatorios, "Relatórios"), unsafe_allow_html=True)
+        if st.button("", key="btn_fast_relatorios"):
+            st.session_state.formulario_ativo = 'view_relatorios'
+            st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
-
     st.markdown("---")
 
-    # --- LÓGICA DE EXIBIÇÃO DE FORMULÁRIOS (Mover dos expansores) ---
+    # --- LÓGICA DE EXIBIÇÃO DE FORMULÁRIOS SELECIONADOS ---
     formulario_ativo = st.session_state.formulario_ativo
 
     if formulario_ativo == 'new_atendimento':
         st.subheader("📥 REGISTRAR ENTRADA (Atendimento Concluído e Pago)")
         if list(st.session_state.servicos.keys()):
-            servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="selectbox_servico_atendimento_fast")
+            servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()), key="sb_atend")
             preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0)
             data_entrada = st.date_input("Data do Atendimento:", datetime.now(TZ).date())
             if st.button("Confirmar e Lançar Entrada", type="primary"):
                 nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_entrada), "Tipo": "Entrada", "Descrição": f"Atendimento: {servico_selecionado}", "Valor": preco_final}])
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa); st.success("Entrada financeira registrada!")
-                # Resetar o estado após o lançamento
                 st.session_state.formulario_ativo = 'none'; st.rerun()
         else: st.info("Cadastre pelo menos um serviço na barra lateral.")
-        if st.button("Cancelar", key="cancel_atendimento"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        if st.button("Fechar Formulário", key="c_atend"): st.session_state.formulario_ativo = 'none'; st.rerun()
 
     elif formulario_ativo == 'new_venda':
         st.subheader("📤 REGISTRAR SAÍDA (Pagamento de Contas e Custos)")
@@ -440,7 +434,7 @@ with tab0:
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa); st.success("Despesa lançada com sucesso!")
                 st.session_state.formulario_ativo = 'none'; st.rerun()
             else: st.error("Preencha a descrição e o valor da despesa.")
-        if st.button("Cancelar", key="cancel_venda"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        if st.button("Fechar Formulário", key="c_venda"): st.session_state.formulario_ativo = 'none'; st.rerun()
 
     elif formulario_ativo == 'new_receber':
         st.subheader("⏳ REGISTRAR PENDÊNCIA (Corte / Serviço Fiado)")
@@ -456,7 +450,7 @@ with tab0:
                     st.session_state.formulario_ativo = 'none'; st.rerun()
                 else: st.error("Por favor, preencha o nome do cliente.")
         else: st.info("Cadastre pelo menos um serviço na barra lateral.")
-        if st.button("Cancelar", key="cancel_receber"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        if st.button("Fechar Formulário", key="c_receber"): st.session_state.formulario_ativo = 'none'; st.rerun()
 
     elif formulario_ativo == 'new_pagar':
         st.subheader("✅ CONFIRMAR RECEBIMENTO DE FIADO (Dar Baixa)")
@@ -471,26 +465,20 @@ with tab0:
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'].replace("Fiado de:", "Recebido Fiado:") + " [PAGO HOJE]"
                 salvar_fluxo(st.session_state.fluxo_caixa); st.success("O valor foi migrado para as Entradas de hoje."); st.session_state.formulario_ativo = 'none'; st.rerun()
         else: st.info("Não existem contas fiadas em aberto no momento.")
-        if st.button("Cancelar", key="cancel_pagar"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        if st.button("Fechar Formulário", key="c_pagar"): st.session_state.formulario_ativo = 'none'; st.rerun()
         
     elif formulario_ativo == 'view_relatorios':
-        st.subheader("📊 Visualização de Relatórios")
-        # Você pode adicionar relatórios mais detalhados aqui no futuro.
-        # Por enquanto, mostramos apenas o resumo financeiro.
+        st.subheader("📊 Visualização de Relatórios Rápidos")
         col1, col2 = st.columns(2)
-        with col1:
-            st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}")
-        with col2:
-            st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}")
-        if st.button("Fechar Relatórios", key="cancel_relatorios"): st.session_state.formulario_ativo = 'none'; st.rerun()
-
+        with col1: st.metric(label="Fechamento do Dia (Líquido)", value=f"R$ {lucro_dia:.2f}")
+        with col2: st.metric(label="Mês Atual (Líquido)", value=f"R$ {lucro_mes:.2f}")
+        if st.button("Fechar Relatórios", key="c_relatorios"): st.session_state.formulario_ativo = 'none'; st.rerun()
     else:
-        st.info("Clique em uma ação rápida acima para iniciar.")
+        st.info("👆 Clique em uma das ações rápidas acima para abrir o formulário desejado.")
 
-# --- SIDEBAR: GERENCIAR SERVIÇOS (MANTIDO) ---
+# --- SIDEBAR: GERENCIAR SERVIÇOS ---
 with st.sidebar:
     st.header("⚙️ Configurações de Serviços")
-    # ... (lógica de gerenciamento de serviços idêntica ao original) ...
     nome_salao_formatado = st.session_state.usuario_logado.replace("_", " ").title()
     st.title(f"✂️ {nome_salao_formatado}")
     dados_proprios = usuarios_cadastrados[st.session_state.usuario_logado]
@@ -504,18 +492,18 @@ with st.sidebar:
         nome_padrao = servico_selecionado_gerenciar; preco_padrao = float(st.session_state.servicos[servico_selecionado_gerenciar]); botao_label = "Salvar Alterações"
     novo_servico = st.text_input("Nome do Serviço:", value=nome_padrao)
     novo_preco = st.number_input("Preço (R$):", min_value=0.0, value=preco_padrao, step=5.0)
-    if st.button(botao_label, type="primary"):
+    if st.button(botao_label, type="primary", key="btn_save_service"):
         if novo_servico:
             if servico_selecionado_gerenciar != "➕ Cadastrar Novo Serviço": del st.session_state.servicos[servico_selecionado_gerenciar]
             st.session_state.servicos[novo_servico] = novo_preco; salvar_servicos(st.session_state.servicos); st.success("Serviço atualizado!"); st.rerun()
         else: st.error("Nome vazio.")
-    if servico_selecionado_gerenciar != "➕ Cadastrar Novo Serviço" and st.button("🗑️ Excluir"):
+    if servico_selecionado_gerenciar != "➕ Cadastrar Novo Serviço" and st.button("🗑️ Excluir", key="btn_del_service"):
         del st.session_state.servicos[servico_selecionado_gerenciar]; salvar_servicos(st.session_state.servicos); st.warning("Excluído!"); st.rerun()
     st.markdown("### Valores Atuais")
     for serv, preco in st.session_state.servicos.items(): st.text(f"• {serv}: R$ {preco:.2f}")
-    if st.button("🚪 Sair do Painel", use_container_width=True): st.session_state.autenticado = False; st.session_state.usuario_logado = None; st.session_state.eh_admin = False; st.rerun()
+    if st.button("🚪 Sair do Painel", use_container_width=True, key="btn_logout_sidebar"): st.session_state.autenticado = False; st.session_state.usuario_logado = None; st.session_state.eh_admin = False; st.rerun()
 
-# --- TAB 1: DASHBOARD (MANTIDO E AJUSTADO) ---
+# --- TAB 1: DASHBOARD ---
 with tab1:
     st.subheader("📊 Resumo Financeiro Real-Time")
     m1, m2, m3 = st.columns(3)
@@ -527,14 +515,13 @@ with tab1:
     dados_grafico = pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]})
     st.bar_chart(data=dados_grafico, x="Categoria", y="Total (R$)", color="#29b6f6")
 
-# --- TAB 2: HISTÓRICO DE CAIXA (MANTIDO) ---
+# --- TAB 2: HISTÓRICO DE CAIXA ---
 with tab2:
     st.subheader("📜 Histórico Completo de Transações")
-    # ... (lógica do histórico idêntica ao original) ...
     if not df_fluxo_caixa.empty:
         df_filtro = df_fluxo_caixa.dropna(subset=['Data']).copy(); df_filtro['Mês/Ano'] = df_filtro['Data'].dt.strftime('%m/%Y')
         meses_disponiveis = sorted(df_filtro['Mês/Ano'].unique(), reverse=True)
-        mes_escolhido = st.selectbox("📅 Selecione o mês:", ["Ver Tudo"] + meses_disponiveis)
+        mes_escolhido = st.selectbox("📅 Selecione o mês:", ["Ver Tudo"] + meses_disponiveis, key="sb_hist_month")
         df_exibicao = df_filtro[df_filtro['Mês/Ano'] == mes_escolhido] if mes_escolhido != "Ver Tudo" else df_filtro
         if not df_exibicao.empty:
             df_visualizacao = df_exibicao.sort_index(ascending=False).copy()
