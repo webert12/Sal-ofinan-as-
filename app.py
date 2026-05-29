@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo  # Importação necessária para o fuso horário
+from zoneinfo import ZoneInfo
 import os
 import json
 
@@ -11,22 +11,16 @@ TZ = ZoneInfo("America/Sao_Paulo")
 # Configuração da página
 st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page_icon="✂️")
 
-# --- CARREGAMENTO DE FONTES E CSS PERSONALIZADO ---
-st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">', unsafe_allow_html=True)
-
-# CSS personalizado corrigido para garantir o clique perfeito
+# --- ESTILIZAÇÃO CSS PROFISSIONAL E COMPATÍVEL ---
 st.markdown("""
 <style>
     /* Estilos globais para tema escuro */
-    body {
+    body, .stApp {
         background-color: #121212;
         color: white;
     }
-    .stApp {
-        background-color: #121212;
-    }
     
-    /* Simulação de cabeçalho */
+    /* Simulação de cabeçalho superior */
     .sim-header {
         display: flex;
         justify-content: space-between;
@@ -40,24 +34,12 @@ st.markdown("""
         font-weight: bold;
         font-size: 1.2rem;
     }
-    .sim-header-icons {
-        color: white;
-        font-size: 1.2rem;
-    }
-    
-    /* Container principal de Ações Rápidas */
-    .fast-actions-container {
-        background-color: #1a1d21;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
     
     /* Título "Ações rápidas" e linha dourada */
     .fast-actions-header {
         display: flex;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
     }
     .fast-actions-title {
         color: white;
@@ -70,86 +52,61 @@ st.markdown("""
         height: 2px;
         background-color: #d4af37;
     }
-    
-    /* Estilo de cada item de ação rápida */
-    .fast-action-item {
-        background-color: #22252a;
-        border-radius: 8px;
-        padding: 15px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        transition: background-color 0.3s;
-        border: 1px solid #333;
-        pointer-events: none; /* Permite que o clique passe para o botão invisível */
+
+    /* Oculta o marcador estrutural usado para isolar os estilos */
+    .is-action-card {
+        display: none;
     }
     
-    .fast-action-icon {
-        color: #d4af37;
-        font-size: 1.2rem;
-        margin-right: 15px;
-    }
-    
-    .fast-action-text {
-        color: white;
-        font-weight: 500;
-        font-size: 0.9rem;
-        flex-grow: 1;
-        text-align: left;
-    }
-    
-    .fast-action-chevron {
-        color: #d4af37;
-        font-size: 1rem;
+    #text-element {
+        display: none;
     }
 
-    /* CORREÇÃO DO CLIQUE: Força a coluna a ser a referência de posicionamento */
-    div[data-testid="stColumn"]:has(.fast-action-item) {
-        position: relative !important;
-    }
-    
-    /* CORREÇÃO DA DIV INTERNA DO STREAMLIT: Faz o container do botão ocupar o card todo */
-    div[data-testid="stColumn"]:has(.fast-action-item) div[data-testid="element-container"]:has(button) {
-        position: absolute !important;
-        top: 0;
-        left: 0;
+    /* TRANSFORMAÇÃO DOS BOTÕES NATIVOS EM CARDS SEGUROS */
+    div[data-testid="stColumn"]:has(.is-action-card) button {
+        background-color: #22252a !important;
+        color: white !important;
+        border: 1px solid #333 !important;
+        border-radius: 8px !important;
+        padding: 18px 15px !important;
+        min-height: 75px !important;
         width: 100% !important;
-        height: 100% !important;
-        z-index: 10 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* Torna o botão do Streamlit completamente invisível, mas 100% clicável */
-    div[data-testid="stColumn"]:has(.fast-action-item) button {
-        width: 100% !important;
-        height: 100% !important;
-        background-color: transparent !important;
-        border: none !important;
-        color: transparent !important;
-        box-shadow: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        transition: all 0.2s ease-in-out !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
         cursor: pointer !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    /* Aplica o efeito visual de hover no card de baixo quando passa o mouse na coluna */
-    div[data-testid="stColumn"]:has(.fast-action-item):hover .fast-action-item {
-        background-color: #333 !important;
     }
     
+    /* Estilização do texto dentro do botão-card */
+    div[data-testid="stColumn"]:has(.is-action-card) button p {
+        color: white !important;
+        font-weight: 500 !important;
+        font-size: 0.95rem !important;
+        margin: 0 !important;
+        text-align: left !important;
+    }
+    
+    /* Efeito ao passar o mouse (Hover) nos Cards */
+    div[data-testid="stColumn"]:has(.is-action-card) button:hover {
+        background-color: #2a2e35 !important;
+        border-color: #d4af37 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(212, 175, 55, 0.1) !important;
+    }
+    
+    /* Efeito de Clique Ativo */
+    div[data-testid="stColumn"]:has(.is-action-card) button:active {
+        background-color: #d4af37 !important;
+        border-color: #d4af37 !important;
+    }
+    div[data-testid="stColumn"]:has(.is-action-card) button:active p {
+        color: #121212 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
-
-def renderizar_acao_rapida(icon_class, text):
-    """Renderiza apenas a estrutura visual do card."""
-    return f"""
-    <div class="fast-action-item">
-        <i class="{icon_class} fast-action-icon"></i>
-        <span class="fast-action-text">{text}</span>
-        <i class="fa fa-chevron-right fast-action-chevron"></i>
-    </div>
-    """
 
 # --- INICIALIZAÇÃO DE ESTADOS ---
 if 'formulario_ativo' not in st.session_state:
@@ -159,7 +116,7 @@ USUARIOS_FILE = "usuarios.json"
 ADMIN_MESTRE_USER = "admin"
 ADMIN_MESTRE_PASS = "master2026"
 
-# --- FUNÇÕES DE GERENCIAMENTO (MANTIDAS) ---
+# --- FUNÇÕES DE GERENCIAMENTO DE ARQUIVOS ---
 def carregar_usuarios():
     vencimento_padrao = (datetime.now(TZ) + timedelta(days=30)).strftime("%Y-%m-%d")
     if os.path.exists(USUARIOS_FILE):
@@ -169,12 +126,7 @@ def carregar_usuarios():
         modificado = False
         for k, v in dados.items():
             if isinstance(v, str):
-                usuarios_atualizados[k] = {
-                    "senha": v,
-                    "tipo": "Cliente",
-                    "vencimento": vencimento_padrao,
-                    "status": "Ativo"
-                }
+                usuarios_atualizados[k] = {"senha": v, "tipo": "Cliente", "vencimento": vencimento_padrao, "status": "Ativo"}
                 modificado = True
             else:
                 usuarios_atualizados[k] = v
@@ -306,101 +258,130 @@ else:
 tab0, tab1, tab2 = st.tabs(["🚀 Início / Ações Rápidas", "📊 Dashboard", "📜 Histórico"])
 
 with tab0:
-    st.markdown('<div class="sim-header"><span class="sim-header-title">Fio&Caixa</span><span class="sim-header-icons"><i class="fa fa-bell"></i> <i class="fa fa-user-circle"></i></span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sim-header"><span class="sim-header-title">Fio&Caixa</span></div>', unsafe_allow_html=True)
     st.markdown('<div class="fast-actions-header"><span class="fast-actions-title">Ações rápidas</span><div class="fast-actions-line"></div></div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="fast-actions-container">', unsafe_allow_html=True)
+    # Grid de Ações Rápidas Seguro e Funcional
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     
     with col_a:
-        st.markdown(renderizar_acao_rapida("fa fa-scissors", "Novo atendimento"), unsafe_allow_html=True)
-        if st.button("", key="btn_atend"):
-            st.session_state.formulario_ativo = 'new_atendimento'; st.rerun()
-    with col_b:
-        st.markdown(renderizar_acao_rapida("fa fa-shopping-cart", "Nova venda"), unsafe_allow_html=True)
-        if st.button("", key="btn_venda"):
-            st.session_state.formulario_ativo = 'new_venda'; st.rerun()
-    with col_c:
-        st.markdown(renderizar_acao_rapida("fa fa-piggy-bank", "Contas a receber"), unsafe_allow_html=True)
-        if st.button("", key="btn_receber"):
-            st.session_state.formulario_ativo = 'new_receber'; st.rerun()
-    with col_d:
-        st.markdown(renderizar_acao_rapida("fa fa-hand-holding-usd", "Contas a pagar"), unsafe_allow_html=True)
-        if st.button("", key="btn_pagar"):
-            st.session_state.formulario_ativo = 'new_pagar'; st.rerun()
-    with col_e:
-        st.markdown(renderizar_acao_rapida("fa fa-chart-bar", "Relatórios"), unsafe_allow_html=True)
-        if st.button("", key="btn_relatorios"):
-            st.session_state.formulario_ativo = 'view_relatorios'; st.rerun()
+        st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
+        if st.button("✂️ Novo atendimento  ❯", key="btn_atend", use_container_width=True):
+            st.session_state.formulario_ativo = 'new_atendimento'
+            st.rerun()
             
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown("---")
+    with col_b:
+        st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
+        if st.button("🛍️ Nova despesa  ❯", key="btn_venda", use_container_width=True):
+            st.session_state.formulario_ativo = 'new_venda'
+            st.rerun()
+            
+    with col_c:
+        st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
+        if st.button("💰 Marcar fiado  ❯", key="btn_receber", use_container_width=True):
+            st.session_state.formulario_ativo = 'new_receber'
+            st.rerun()
+            
+    with col_d:
+        st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
+        if st.button("💸 Receber fiado  ❯", key="btn_pagar", use_container_width=True):
+            st.session_state.formulario_ativo = 'new_pagar'
+            st.rerun()
+            
+    with col_e:
+        st.markdown('<div class="is-action-card"></div>', unsafe_allow_html=True)
+        if st.button("📊 Ver relatórios  ❯", key="btn_relatorios", use_container_width=True):
+            st.session_state.formulario_ativo = 'view_relatorios'
+            st.rerun()
+            
+    st.markdown("<br>", unsafe_allow_html=True)
 
     # --- EXIBIÇÃO DINÂMICA DOS FORMULÁRIOS ---
     formulario_ativo = st.session_state.formulario_ativo
 
     if formulario_ativo == 'new_atendimento':
+        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
         st.subheader("📥 REGISTRAR ENTRADA (Atendimento Concluído)")
         if list(st.session_state.servicos.keys()):
             servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()))
             preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0)
             data_entrada = st.date_input("Data do Atendimento:", datetime.now(TZ).date())
-            if st.button("Confirmar e Lançar Entrada", type="primary"):
+            
+            c_btn1, c_btn2 = st.columns([1, 4])
+            if c_btn1.button("Lançar Entrada", type="primary"):
                 nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_entrada), "Tipo": "Entrada", "Descrição": f"Atendimento: {servico_selecionado}", "Valor": preco_final}])
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
                 st.session_state.formulario_ativo = 'none'; st.rerun()
-        else: st.info("Cadastre serviços na barra lateral.")
-        if st.button("Fechar", key="c_atend"): st.session_state.formulario_ativo = 'none'; st.rerun()
+            if c_btn2.button("Cancelar", key="c_atend"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        else: 
+            st.info("Por favor, cadastre serviços na barra lateral antes de começar.")
+            if st.button("Fechar"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     elif formulario_ativo == 'new_venda':
+        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
         st.subheader("📤 REGISTRAR SAÍDA (Pagamento de Despesas)")
-        descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel):")
-        valor_saida = st.number_input("Valor (R$):", min_value=0.0, step=5.0)
+        descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
+        valor_saida = st.number_input("Valor pago (R$):", min_value=0.0, step=5.0)
         data_saida = st.date_input("Data do Pagamento:", datetime.now(TZ).date())
-        if st.button("Confirmar Saída", type="primary"):
+        
+        c_btn1, c_btn2 = st.columns([1, 4])
+        if c_btn1.button("Confirmar Saída", type="primary"):
             if descricao_saida and valor_saida > 0:
                 nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_saida), "Tipo": "Saída", "Descrição": descricao_saida, "Valor": -valor_saida}])
                 st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
                 st.session_state.formulario_ativo = 'none'; st.rerun()
-        if st.button("Fechar", key="c_venda"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        if c_btn2.button("Cancelar", key="c_venda"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     elif formulario_ativo == 'new_receber':
+        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
         st.subheader("⏳ REGISTRAR PENDÊNCIA (Serviço Fiado)")
         if list(st.session_state.servicos.keys()):
-            nome_devedor = st.text_input("Nome do Cliente:")
+            nome_devedor = st.text_input("Nome do Cliente Devedor:")
             servico_pendente = st.selectbox("Selecione o Serviço:", list(st.session_state.servicos.keys()))
             preco_final_p = st.number_input("Valor Pendente (R$):", value=float(st.session_state.servicos[servico_pendente]))
-            data_pendencia = st.date_input("Data:", datetime.now(TZ).date())
-            if st.button("Salvar Fiado", type="primary"):
+            data_pendencia = st.date_input("Data da pendência:", datetime.now(TZ).date())
+            
+            c_btn1, c_btn2 = st.columns([1, 4])
+            if c_btn1.button("Salvar Registro", type="primary"):
                 if nome_devedor:
                     nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_pendencia), "Tipo": "Pendência", "Descrição": f"Fiado de: {nome_devedor} ({servico_pendente})", "Valor": preco_final_p}])
                     st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
                     st.session_state.formulario_ativo = 'none'; st.rerun()
-        if st.button("Fechar", key="c_receber"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        if c_btn2.button("Cancelar", key="c_receber"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     elif formulario_ativo == 'new_pagar':
+        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
         st.subheader("✅ CONFIRMAR RECEBIMENTO DE FIADO")
         df_pendencias = df_fluxo_caixa[df_fluxo_caixa['Tipo'] == 'Pendência']
         if not df_pendencias.empty:
             opcoes_pendentes = {f"{row['Descrição']} - R$ {abs(row['Valor']):.2f}": idx for idx, row in df_pendencias.iterrows()}
-            pendencia_selecionada = st.selectbox("Selecione o cliente pagando:", list(opcoes_pendentes.keys()))
-            if st.button("Dar Baixa (Recebido)", type="primary"):
+            pendencia_selecionada = st.selectbox("Selecione o cliente que está pagando:", list(opcoes_pendentes.keys()))
+            
+            c_btn1, c_btn2 = st.columns([1, 4])
+            if c_btn1.button("Dar Baixa (Pago)", type="primary"):
                 idx_alterar = opcoes_pendentes[pendencia_selecionada]
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now(TZ).date())
                 st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'].replace("Fiado de:", "Recebido Fiado:") + " [PAGO]"
                 salvar_fluxo(st.session_state.fluxo_caixa); st.session_state.formulario_ativo = 'none'; st.rerun()
-        else: st.info("Nenhum fiado em aberto.")
-        if st.button("Fechar", key="c_pagar"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        else: 
+            st.info("Nenhum registro de fiado em aberto no momento.")
+        if st.button("Fechar Janela", key="c_pagar"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
         
     elif formulario_ativo == 'view_relatorios':
-        st.subheader("📊 Resumo de Fechamento")
+        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
+        st.subheader("📊 Resumo Rápido de Fechamento")
         c1, c2 = st.columns(2)
-        c1.metric("Líquido do Dia", f"R$ {lucro_dia:.2f}")
-        c2.metric("Líquido do Mês", f"R$ {lucro_mes:.2f}")
-        if st.button("Fechar", key="c_rel"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        c1.metric("Faturamento Líquido do Dia", f"R$ {lucro_dia:.2f}")
+        c2.metric("Faturamento Líquido do Mês", f"R$ {lucro_mes:.2f}")
+        if st.button("Fechar Relatório", key="c_rel"): st.session_state.formulario_ativo = 'none'; st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.info("👆 Clique em um dos cards de ação acima para interagir com o sistema.")
+        st.markdown("<p style='color: #777; font-style: italic;'>Clique em uma das ações acima para abrir as telas de lançamentos.</p>", unsafe_allow_html=True)
 
 # --- SIDEBAR: CONFIGURAÇÕES DE SERVIÇOS ---
 with st.sidebar:
@@ -409,43 +390,44 @@ with st.sidebar:
     st.title(f"✂️ {nome_salao}")
     st.markdown("---")
     opcoes_gerenciamento = ["➕ Cadastrar Novo Serviço"] + list(st.session_state.servicos.keys())
-    servico_sel = st.selectbox("Escolha uma ação:", opcoes_gerenciamento)
+    servico_sel = st.selectbox("Escolha um serviço para gerenciar:", opcoes_gerenciamento)
     
     nome_padrao = "" if servico_sel == "➕ Cadastrar Novo Serviço" else servico_sel
     preco_padrao = 0.0 if servico_sel == "➕ Cadastrar Novo Serviço" else float(st.session_state.servicos[servico_sel])
     
     novo_servico = st.text_input("Nome do Serviço:", value=nome_padrao)
-    novo_preco = st.number_input("Preço (R$):", min_value=0.0, value=preco_padrao, step=5.0)
+    novo_preco = st.number_input("Preço Cobrado (R$):", min_value=0.0, value=preco_padrao, step=5.0)
     
-    if st.button("Salvar Serviço", type="primary"):
+    if st.button("Salvar Alteração", type="primary", use_container_width=True):
         if novo_servico:
             if servico_sel != "➕ Cadastrar Novo Serviço": del st.session_state.servicos[servico_sel]
             st.session_state.servicos[novo_servico] = novo_preco; salvar_servicos(st.session_state.servicos); st.rerun()
             
-    if servico_sel != "➕ Cadastrar Novo Serviço" and st.button("🗑️ Excluir"):
+    if servico_sel != "➕ Cadastrar Novo Serviço" and st.button("🗑️ Remover Serviço do Catálogo", use_container_width=True):
         del st.session_state.servicos[servico_sel]; salvar_servicos(st.session_state.servicos); st.rerun()
-        
-    if st.button("🚪 Sair do Painel", use_container_width=True):
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("🚪 Sair do Sistema", use_container_width=True):
         st.session_state.autenticado = False; st.rerun()
 
-# --- TAB 1: DASHBOARD ---
+# --- TAB 1: DASHBOARD GRÁFICO ---
 with tab1:
-    st.subheader("📊 Resumo Financeiro")
+    st.subheader("📊 Resumo Financeiro Estruturado")
     m1, m2, m3 = st.columns(3)
-    m1.metric("Fechamento Dia", f"R$ {lucro_dia:.2f}")
-    m2.metric("Últimos 7 Dias", f"R$ {lucro_sem:.2f}")
-    m3.metric("Mês Atual", f"R$ {lucro_mes:.2f}")
+    m1.metric("Fechamento do Dia", f"R$ {lucro_dia:.2f}")
+    m2.metric("Acumulado 7 Dias", f"R$ {lucro_sem:.2f}")
+    m3.metric("Faturamento do Mês", f"R$ {lucro_mes:.2f}")
     st.markdown("---")
     st.bar_chart(pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]}), x="Categoria", y="Total (R$)", color="#29b6f6")
 
-# --- TAB 2: HISTÓRICO ---
+# --- TAB 2: HISTÓRICO DE LANÇAMENTOS ---
 with tab2:
-    st.subheader("📜 Histórico de Transações")
+    st.subheader("📜 Histórico de Transações Completas")
     if not df_fluxo_caixa.empty:
         df_filtro = df_fluxo_caixa.dropna(subset=['Data']).copy()
         df_filtro['Mês/Ano'] = df_filtro['Data'].dt.strftime('%m/%Y')
         meses = sorted(df_filtro['Mês/Ano'].unique(), reverse=True)
-        mes_escolhido = st.selectbox("📅 Selecione o mês:", ["Ver Tudo"] + meses)
+        mes_escolhido = st.selectbox("📅 Escolha o mês de referência:", ["Ver Tudo"] + meses)
         df_exibicao = df_filtro[df_filtro['Mês/Ano'] == mes_escolhido] if mes_escolhido != "Ver Tudo" else df_filtro
         if not df_exibicao.empty:
             df_vis = df_exibicao.sort_index(ascending=False).copy()
@@ -455,5 +437,6 @@ with tab2:
                 if row['Tipo'] == 'Entrada': return ['background-color: #d4edda; color: #155724'] * 4
                 elif row['Tipo'] == 'Saída': return ['background-color: #f8d7da; color: #721c24'] * 4
                 return ['background-color: #fff3cd; color: #856404'] * 4
-            st.dataframe(df_vis.style.apply(colorir, axis=1).format({"Valor": "R$ {:.2f}"}), use_container_width=True)
-    else: st.info("Nenhuma movimentação.")
+            st.dataframe(df_vis.style.apply(colorir, axis=1).format({"Valor": "R$ {:.2f}"}), use_container_width=True, hide_index=True)
+    else: 
+        st.info("Nenhuma movimentação financeira registrada até o momento.")
