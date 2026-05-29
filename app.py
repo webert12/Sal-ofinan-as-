@@ -57,10 +57,6 @@ st.markdown("""
     .is-action-card {
         display: none;
     }
-    
-    #text-element {
-        display: none;
-    }
 
     /* TRANSFORMAÇÃO DOS BOTÕES NATIVOS EM CARDS SEGUROS */
     div[data-testid="stColumn"]:has(.is-action-card) button {
@@ -255,13 +251,25 @@ if not df_fluxo_caixa.empty:
 else:
     ent_dia = sai_dia = lucro_dia = ent_sem = sai_sem = lucro_sem = ent_mes = sai_mes = lucro_mes = 0
 
-tab0, tab1, tab2 = st.tabs(["🚀 Início / Ações Rápidas", "📊 Dashboard", "📜 Histórico"])
+# ALTERADO: Mudança na ordem das abas para trazer o Dashboard para a frente
+tab1, tab0, tab2 = st.tabs(["📊 Dashboard", "🚀 Início / Ações Rápidas", "📜 Histórico"])
 
+# --- TAB 1: DASHBOARD GRÁFICO (AGORA NA FRENTE) ---
+with tab1:
+    st.subheader("📊 Resumo Financeiro Estruturado")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Fechamento do Dia", f"R$ {lucro_dia:.2f}")
+    m2.metric("Acumulado 7 Dias", f"R$ {lucro_sem:.2f}")
+    m3.metric("Faturamento do Mês", f"R$ {lucro_mes:.2f}")
+    st.markdown("---")
+    st.bar_chart(pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]}), x="Categoria", y="Total (R$)", color="#29b6f6")
+
+# --- TAB 0: COMANDOS E AÇÕES RÁPIDAS ---
 with tab0:
     st.markdown('<div class="sim-header"><span class="sim-header-title">Fio&Caixa</span></div>', unsafe_allow_html=True)
     st.markdown('<div class="fast-actions-header"><span class="fast-actions-title">Ações rápidas</span><div class="fast-actions-line"></div></div>', unsafe_allow_html=True)
 
-    # Grid de Ações Rápidas Seguro e Funcional
+    # Grid de Ações Rápidas
     col_a, col_b, col_c, col_d, col_e = st.columns(5)
     
     with col_a:
@@ -293,95 +301,89 @@ with tab0:
         if st.button("📊 Ver relatórios  ❯", key="btn_relatorios", use_container_width=True):
             st.session_state.formulario_ativo = 'view_relatorios'
             st.rerun()
-            
-    st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- EXIBIÇÃO DINÂMICA DOS FORMULÁRIOS ---
+    # --- EXIBIÇÃO DINÂMICA DOS FORMULÁRIOS (IMEDIATAMENTE ABAIXO DOS BOTÕES) ---
     formulario_ativo = st.session_state.formulario_ativo
 
-    if formulario_ativo == 'new_atendimento':
-        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
-        st.subheader("📥 REGISTRAR ENTRADA (Atendimento Concluído)")
-        if list(st.session_state.servicos.keys()):
-            servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()))
-            preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0)
-            data_entrada = st.date_input("Data do Atendimento:", datetime.now(TZ).date())
-            
-            c_btn1, c_btn2 = st.columns([1, 4])
-            if c_btn1.button("Lançar Entrada", type="primary"):
-                nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_entrada), "Tipo": "Entrada", "Descrição": f"Atendimento: {servico_selecionado}", "Valor": preco_final}])
-                st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
-                st.session_state.formulario_ativo = 'none'; st.rerun()
-            if c_btn2.button("Cancelar", key="c_atend"): st.session_state.formulario_ativo = 'none'; st.rerun()
-        else: 
-            st.info("Por favor, cadastre serviços na barra lateral antes de começar.")
-            if st.button("Fechar"): st.session_state.formulario_ativo = 'none'; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif formulario_ativo == 'new_venda':
-        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
-        st.subheader("📤 REGISTRAR SAÍDA (Pagamento de Despesas)")
-        descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
-        valor_saida = st.number_input("Valor pago (R$):", min_value=0.0, step=5.0)
-        data_saida = st.date_input("Data do Pagamento:", datetime.now(TZ).date())
+    if formulario_ativo != 'none':
+        # Container colado e destacado com borda dourada suave indicando atividade
+        st.markdown('<div style="margin-top: 15px; background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #d4af37;">', unsafe_allow_html=True)
         
-        c_btn1, c_btn2 = st.columns([1, 4])
-        if c_btn1.button("Confirmar Saída", type="primary"):
-            if descricao_saida and valor_saida > 0:
-                nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_saida), "Tipo": "Saída", "Descrição": descricao_saida, "Valor": -valor_saida}])
-                st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
-                st.session_state.formulario_ativo = 'none'; st.rerun()
-        if c_btn2.button("Cancelar", key="c_venda"): st.session_state.formulario_ativo = 'none'; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif formulario_ativo == 'new_receber':
-        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
-        st.subheader("⏳ REGISTRAR PENDÊNCIA (Serviço Fiado)")
-        if list(st.session_state.servicos.keys()):
-            nome_devedor = st.text_input("Nome do Cliente Devedor:")
-            servico_pendente = st.selectbox("Selecione o Serviço:", list(st.session_state.servicos.keys()))
-            preco_final_p = st.number_input("Valor Pendente (R$):", value=float(st.session_state.servicos[servico_pendente]))
-            data_pendencia = st.date_input("Data da pendência:", datetime.now(TZ).date())
-            
-            c_btn1, c_btn2 = st.columns([1, 4])
-            if c_btn1.button("Salvar Registro", type="primary"):
-                if nome_devedor:
-                    nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_pendencia), "Tipo": "Pendência", "Descrição": f"Fiado de: {nome_devedor} ({servico_pendente})", "Valor": preco_final_p}])
+        if formulario_ativo == 'new_atendimento':
+            st.subheader("📥 REGISTRAR ENTRADA (Atendimento Concluído)")
+            if list(st.session_state.servicos.keys()):
+                servico_selecionado = st.selectbox("Selecione o Serviço realizado:", list(st.session_state.servicos.keys()))
+                preco_final = st.number_input("Valor Cobrado (R$):", value=float(st.session_state.servicos[servico_selecionado]), step=1.0)
+                data_entrada = st.date_input("Data do Atendimento:", datetime.now(TZ).date())
+                
+                c_btn1, c_btn2 = st.columns([1, 4])
+                if c_btn1.button("Lançar Entrada", type="primary"):
+                    nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_entrada), "Tipo": "Entrada", "Descrição": f"Atendimento: {servico_selecionado}", "Valor": preco_final}])
                     st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
                     st.session_state.formulario_ativo = 'none'; st.rerun()
-        if c_btn2.button("Cancelar", key="c_receber"): st.session_state.formulario_ativo = 'none'; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+                if c_btn2.button("Cancelar", key="c_atend"): st.session_state.formulario_ativo = 'none'; st.rerun()
+            else: 
+                st.info("Por favor, cadastre serviços na barra lateral antes de começar.")
+                if st.button("Fechar"): st.session_state.formulario_ativo = 'none'; st.rerun()
 
-    elif formulario_ativo == 'new_pagar':
-        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
-        st.subheader("✅ CONFIRMAR RECEBIMENTO DE FIADO")
-        df_pendencias = df_fluxo_caixa[df_fluxo_caixa['Tipo'] == 'Pendência']
-        if not df_pendencias.empty:
-            opcoes_pendentes = {f"{row['Descrição']} - R$ {abs(row['Valor']):.2f}": idx for idx, row in df_pendencias.iterrows()}
-            pendencia_selecionada = st.selectbox("Selecione o cliente que está pagando:", list(opcoes_pendentes.keys()))
+        elif formulario_ativo == 'new_venda':
+            st.subheader("📤 REGISTRAR SAÍDA (Pagamento de Despesas)")
+            descricao_saida = st.text_input("Descrição da Despesa (Ex: Luz, Aluguel, Produtos):")
+            valor_saida = st.number_input("Valor pago (R$):", min_value=0.0, step=5.0)
+            data_saida = st.date_input("Data do Pagamento:", datetime.now(TZ).date())
             
             c_btn1, c_btn2 = st.columns([1, 4])
-            if c_btn1.button("Dar Baixa (Pago)", type="primary"):
-                idx_alterar = opcoes_pendentes[pendencia_selecionada]
-                st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
-                st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now(TZ).date())
-                st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'].replace("Fiado de:", "Recebido Fiado:") + " [PAGO]"
-                salvar_fluxo(st.session_state.fluxo_caixa); st.session_state.formulario_ativo = 'none'; st.rerun()
-        else: 
-            st.info("Nenhum registro de fiado em aberto no momento.")
-        if st.button("Fechar Janela", key="c_pagar"): st.session_state.formulario_ativo = 'none'; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-    elif formulario_ativo == 'view_relatorios':
-        st.markdown('<div style="background-color: #1a1d21; padding: 20px; border-radius: 8px; border: 1px solid #333;">', unsafe_allow_html=True)
-        st.subheader("📊 Resumo Rápido de Fechamento")
-        c1, c2 = st.columns(2)
-        c1.metric("Faturamento Líquido do Dia", f"R$ {lucro_dia:.2f}")
-        c2.metric("Faturamento Líquido do Mês", f"R$ {lucro_mes:.2f}")
-        if st.button("Fechar Relatório", key="c_rel"): st.session_state.formulario_ativo = 'none'; st.rerun()
+            if c_btn1.button("Confirmar Saída", type="primary"):
+                if descricao_saida and valor_saida > 0:
+                    nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_saida), "Tipo": "Saída", "Descrição": descricao_saida, "Valor": -valor_saida}])
+                    st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
+                    st.session_state.formulario_ativo = 'none'; st.rerun()
+            if c_btn2.button("Cancelar", key="c_venda"): st.session_state.formulario_ativo = 'none'; st.rerun()
+
+        elif formulario_ativo == 'new_receber':
+            st.subheader("⏳ REGISTRAR PENDÊNCIA (Serviço Fiado)")
+            if list(st.session_state.servicos.keys()):
+                nome_devedor = st.text_input("Nome do Cliente Devedor:")
+                servico_pendente = st.selectbox("Selecione o Serviço:", list(st.session_state.servicos.keys()))
+                preco_final_p = st.number_input("Valor Pendente (R$):", value=float(st.session_state.servicos[servico_pendente]))
+                data_pendencia = st.date_input("Data da pendência:", datetime.now(TZ).date())
+                
+                c_btn1, c_btn2 = st.columns([1, 4])
+                if c_btn1.button("Salvar Registro", type="primary"):
+                    if nome_devedor:
+                        nova_linha = pd.DataFrame([{"Data": pd.to_datetime(data_pendencia), "Tipo": "Pendência", "Descrição": f"Fiado de: {nome_devedor} ({servico_pendente})", "Valor": preco_final_p}])
+                        st.session_state.fluxo_caixa = pd.concat([st.session_state.fluxo_caixa, nova_linha], ignore_index=True); salvar_fluxo(st.session_state.fluxo_caixa)
+                        st.session_state.formulario_ativo = 'none'; st.rerun()
+            if c_btn2.button("Cancelar", key="c_receber"): st.session_state.formulario_ativo = 'none'; st.rerun()
+
+        elif formulario_ativo == 'new_pagar':
+            st.subheader("✅ CONFIRMAR RECEBIMENTO DE FIADO")
+            df_pendencias = df_fluxo_caixa[df_fluxo_caixa['Tipo'] == 'Pendência']
+            if not df_pendencias.empty:
+                opcoes_pendentes = {f"{row['Descrição']} - R$ {abs(row['Valor']):.2f}": idx for idx, row in df_pendencias.iterrows()}
+                pendencia_selecionada = st.selectbox("Selecione o cliente que está pagando:", list(opcoes_pendentes.keys()))
+                
+                c_btn1, c_btn2 = st.columns([1, 4])
+                if c_btn1.button("Dar Baixa (Pago)", type="primary"):
+                    idx_alterar = opcoes_pendentes[pendencia_selecionada]
+                    st.session_state.fluxo_caixa.at[idx_alterar, 'Tipo'] = 'Entrada'
+                    st.session_state.fluxo_caixa.at[idx_alterar, 'Data'] = pd.to_datetime(datetime.now(TZ).date())
+                    st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'] = st.session_state.fluxo_caixa.at[idx_alterar, 'Descrição'].replace("Fiado de:", "Recebido Fiado:") + " [PAGO]"
+                    salvar_fluxo(st.session_state.fluxo_caixa); st.session_state.formulario_ativo = 'none'; st.rerun()
+            else: 
+                st.info("Nenhum registro de fiado em aberto no momento.")
+            if st.button("Fechar Janela", key="c_pagar"): st.session_state.formulario_ativo = 'none'; st.rerun()
+            
+        elif formulario_ativo == 'view_relatorios':
+            st.subheader("📊 Resumo Rápido de Fechamento")
+            c1, c2 = st.columns(2)
+            c1.metric("Faturamento Líquido do Dia", f"R$ {lucro_dia:.2f}")
+            c2.metric("Faturamento Líquido do Mês", f"R$ {lucro_mes:.2f}")
+            if st.button("Fechar Relatório", key="c_rel"): st.session_state.formulario_ativo = 'none'; st.rerun()
+            
         st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.markdown("<p style='color: #777; font-style: italic;'>Clique em uma das ações acima para abrir as telas de lançamentos.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #777; font-style: italic; margin-top:15px;'>Clique em uma das ações rápidas acima para abrir os painéis de lançamento.</p>", unsafe_allow_html=True)
 
 # --- SIDEBAR: CONFIGURAÇÕES DE SERVIÇOS ---
 with st.sidebar:
@@ -409,16 +411,6 @@ with st.sidebar:
     st.markdown("<br><br>", unsafe_allow_html=True)
     if st.button("🚪 Sair do Sistema", use_container_width=True):
         st.session_state.autenticado = False; st.rerun()
-
-# --- TAB 1: DASHBOARD GRÁFICO ---
-with tab1:
-    st.subheader("📊 Resumo Financeiro Estruturado")
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Fechamento do Dia", f"R$ {lucro_dia:.2f}")
-    m2.metric("Acumulado 7 Dias", f"R$ {lucro_sem:.2f}")
-    m3.metric("Faturamento do Mês", f"R$ {lucro_mes:.2f}")
-    st.markdown("---")
-    st.bar_chart(pd.DataFrame({"Categoria": ["Entradas", "Saídas"], "Total (R$)": [ent_mes, abs(sai_mes)]}), x="Categoria", y="Total (R$)", color="#29b6f6")
 
 # --- TAB 2: HISTÓRICO DE LANÇAMENTOS ---
 with tab2:
