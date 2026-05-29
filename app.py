@@ -15,134 +15,44 @@ st.set_page_config(page_title="Gestão Financeira - Salão", layout="wide", page
 # --- ESTILIZAÇÃO CSS PROFISSIONAL E CORREÇÕES VISUAIS ---
 st.markdown("""
 <style>
-    body, .stApp {
-        background-color: #121212;
-        color: white;
-    }
-    
-    .sim-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid #333;
-        margin-bottom: 20px;
-    }
-    .sim-header-title {
-        color: #d4af37;
-        font-weight: bold;
-        font-size: 1.2rem;
-    }
-    
-    .fast-actions-header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-    .fast-actions-title {
-        color: white;
-        font-weight: bold;
-        font-size: 1rem;
-        margin-right: 10px;
-    }
-    .fast-actions-line {
-        flex-grow: 1;
-        height: 2px;
-        background-color: #d4af37;
-    }
+    /* ... (mantenha seu CSS anterior aqui) ... */
 
-    .is-action-card {
-        display: none;
-    }
-
-    /* TRANSFORMAÇÃO DOS BOTÕES NATIVOS EM CARDS SEGUROS */
-    div[data-testid="stColumn"]:has(.is-action-card) button {
-        background-color: #22252a !important;
-        color: white !important;
-        border: 1px solid #333 !important;
-        border-radius: 8px !important;
-        padding: 18px 15px !important;
-        min-height: 75px !important;
-        width: 100% !important;
+    /* FORÇAR CENTRALIZAÇÃO DOS BOTÕES DE INCREMENTO */
+    div[data-testid="stNumberInputContainer"] > div {
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 10px !important;
-        transition: all 0.2s ease-in-out !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15) !important;
-        cursor: pointer !important;
-    }
-    
-    div[data-testid="stColumn"]:has(.is-action-card) button p {
-        color: white !important;
-        font-weight: 500 !important;
-        font-size: 0.95rem !important;
-        margin: 0 !important;
-        text-align: left !important;
-    }
-    
-    div[data-testid="stColumn"]:has(.is-action-card) button:hover {
-        background-color: #2a2e35 !important;
-        border-color: #d4af37 !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 12px rgba(212, 175, 55, 0.1) !important;
-    }
-    
-    div[data-testid="stColumn"]:has(.is-action-card) button:active {
-        background-color: #d4af37 !important;
-        border-color: #d4af37 !important;
-    }
-    
-    /* Container do formulário embutido abaixo do botão */
-    .embedded-form-container {
-        margin-top: 15px;
-        background-color: #1a1d21;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid #d4af37;
+        justify-content: center !important;
     }
 
-    /* CORREÇÃO MAXIMA: Centralização absoluta dos botões +/- em qualquer ecrã/tela */
     div[data-testid="stNumberInputContainer"] button {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        height: 40px !important; /* Altura fixa para garantir centralização */
+        width: 40px !important;
         padding: 0 !important;
         margin: 0 !important;
-        line-height: 1 !important;
-        height: 100% !important;
     }
-    
-    div[data-testid="stNumberInputContainer"] button * {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1 !important;
+
+    /* Remove qualquer margem interna extra que o Streamlit possa estar aplicando */
+    div[data-testid="stNumberInputStepDown"] p, 
+    div[data-testid="stNumberInputStepUp"] p {
         margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    div[data-testid="stNumberInputStepUp"], 
-    div[data-testid="stNumberInputStepDown"] {
+        line-height: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
     }
 
-    /* Estilização da caixa de confirmação com borda dourada */
-    .confirmacao-dourada {
-        background-color: #1e1e1e;
-        border: 2px solid #d4af37;
-        padding: 12px 15px;
-        border-radius: 6px;
-        color: #fff;
-        font-weight: 500;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    /* Correção específica para dispositivos móveis */
+    @media (max-width: 768px) {
+        div[data-testid="stNumberInputContainer"] button {
+            height: 35px !important;
+            width: 35px !important;
+        }
     }
 </style>
+
 """, unsafe_allow_html=True)
 
 # --- INICIALIZAÇÃO DE ESTADOS ---
